@@ -3,7 +3,7 @@
  * - O servidor agora serve os arquivos do frontend por padrão.
  * - A mensagem "API em modo de desenvolvimento" só aparecerá se NODE_ENV
  * for explicitamente definido como 'development', corrigindo o problema no deploy.
- * - Adicionada rota para transações recorrentes.
+ * - Adicionada rota para transações recorrentes e jobs externos.
  */
 import express from 'express';
 import dotenv from 'dotenv';
@@ -18,9 +18,10 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
-import recurringTransactionRoutes from './routes/recurringTransactionRoutes.js'; // Importa a nova rota
+import recurringTransactionRoutes from './routes/recurringTransactionRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import logRoutes from './routes/logRoutes.js';
+import jobRoutes from './routes/jobRoutes.js'; // Importação que estava faltando
 
 dotenv.config();
 
@@ -56,9 +57,9 @@ const startServer = async () => {
   app.use('/api/categories', categoryRoutes);
   app.use('/api/transactions', transactionRoutes);
   app.use('/api/recurring-transactions', recurringTransactionRoutes);
-  app.use('/api/jobs', jobRoutes); // Usa a nova rota
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/logs', logRoutes);
+  app.use('/api/jobs', jobRoutes); // Esta linha agora funciona, pois jobRoutes está importado
 
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
