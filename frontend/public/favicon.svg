@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <title>ExpenseManager Favicon</title>
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#34D399;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#A7F3D0;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <path d="M12 52V12C12 9.79086 13.7909 8 16 8H48C50.2091 8 52 9.79086 52 12V52C52 54.2091 50.2091 56 48 56H16C13.7909 56 12 54.2091 12 52Z" fill="url(#grad)"/>
+    <path d="M22 44V28" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M32 44V20" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M42 44V36" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
