@@ -2,6 +2,7 @@
  * Modelo de dados renomeado de 'Expense' para 'Transaction'.
  * - Adicionado o campo 'type' para diferenciar 'income' (receita) e 'expense' (despesa).
  * - O campo 'category' tornou-se opcional, pois se aplica principalmente a despesas.
+ * - Adicionado o campo 'paymentType' para associar um tipo de pagamento.
  */
 import mongoose from 'mongoose';
 
@@ -31,7 +32,12 @@ const transactionSchema = mongoose.Schema({
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: false, // Categoria não é obrigatória para receitas
+    required: false,
+  },
+  paymentType: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PaymentType',
+    required: false,
   },
   notes: {
     type: String,

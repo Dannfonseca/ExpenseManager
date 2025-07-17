@@ -2,6 +2,8 @@
  * Ajustada a submissão do formulário para não enviar o campo 'category'
  * quando a transação for do tipo 'income' (receita).
  * Adicionado formulário condicional para criação de transações recorrentes.
+ * Adicionado campo opcional 'paymentType' (tipo de pagamento).
+ * Corrigido erro no componente Select ao remover a opção com valor vazio.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -43,6 +45,11 @@ interface Category {
   name: string;
 }
 
+interface PaymentType {
+  _id: string;
+  name: string;
+}
+
 const AddTransaction = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [transactionType, setTransactionType] = useState<"expense" | "income">(
@@ -51,35 +58,48 @@ const AddTransaction = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   const [formData, setFormData] = useState({
     description: "",
     amount: "",
     category: "",
+    paymentType: "",
     notes: "",
     frequency: "monthly",
   });
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (transactionType === "expense") {
-      const fetchCategories = async () => {
-        try {
-          const userInfoString = localStorage.getItem("userInfo");
-          if (!userInfoString) throw new Error("Usuário não autenticado.");
-          const { token } = JSON.parse(userInfoString);
+    const fetchInitialData = async () => {
+      try {
+        const userInfoString = localStorage.getItem("userInfo");
+        if (!userInfoString) throw new Error("Usuário não autenticado.");
+        const { token } = JSON.parse(userInfoString);
 
-          const response = await fetch("/api/categories", {
+        // Fetch Payment Types
+        const ptResponse = await fetch("/api/payment-types", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!ptResponse.ok) throw new Error("Falha ao buscar tipos de pagamento.");
+        const ptData = await ptResponse.json();
+        setPaymentTypes(ptData);
+
+        // Fetch Categories only if it's an expense
+        if (transactionType === "expense") {
+          const catResponse = await fetch("/api/categories", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (!response.ok) throw new Error("Falha ao buscar categorias.");
-          const data = await response.json();
-          setCategories(data);
-        } catch (error: any) {
-          toast.error(error.message);
+          if (!catResponse.ok) throw new Error("Falha ao buscar categorias.");
+          const catData = await catResponse.json();
+          setCategories(catData);
+        } else {
+          setCategories([]);
         }
-      };
-      fetchCategories();
-    }
+      } catch (error: any) {
+        toast.error(error.message);
+      }
+    };
+    fetchInitialData();
   }, [transactionType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +120,10 @@ const AddTransaction = () => {
       amount: parseFloat(formData.amount),
       notes: formData.notes,
     };
+
+    if (formData.paymentType) {
+      transactionData.paymentType = formData.paymentType;
+    }
 
     if (isRecurring) {
       transactionData.frequency = formData.frequency;
@@ -233,35 +257,7 @@ const AddTransaction = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {transactionType === "expense" && (
-                <div className="space-y-2">
-                  <Label>Categoria *</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, category: value }))
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category._id} value={category._id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              <div
-                className={`space-y-2 ${
-                  transactionType === "income" ? "md:col-span-2" : ""
-                }`}
-              >
+              <div className="space-y-2">
                 <Label>{isRecurring ? "Data de Início *" : "Data *"}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -292,8 +288,52 @@ const AddTransaction = () => {
                 </Popover>
               </div>
 
+              {transactionType === "expense" && (
+                <div className="space-y-2">
+                  <Label>Categoria *</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, category: value }))
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category._id} value={category._id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             
+            <div className="space-y-2">
+              <Label>Tipo de Pagamento (Opcional)</Label>
+              <Select
+                value={formData.paymentType}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, paymentType: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um tipo de pagamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentTypes.map((pt) => (
+                    <SelectItem key={pt._id} value={pt._id}>
+                      {pt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {isRecurring && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="space-y-2">

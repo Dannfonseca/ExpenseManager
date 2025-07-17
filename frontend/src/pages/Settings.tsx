@@ -3,6 +3,7 @@
  * - Utiliza o componente AlertDialog para alertar o usuário sobre a perda de dados.
  * - Adicionado espaçamento no topo para corrigir sobreposição do título no modo mobile.
  * - Implementada a funcionalidade completa de edição de categorias.
+ * - Adicionada a funcionalidade de CRUD para Tipos de Pagamento.
  */
 import {
   Card,
@@ -21,7 +22,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Palette, Bell } from "lucide-react";
+import { Plus, Edit, Trash2, Palette, CreditCard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -42,6 +42,11 @@ interface Category {
   _id: string;
   name: string;
   color?: string;
+}
+
+interface PaymentType {
+  _id: string;
+  name: string;
 }
 
 const colors = [
@@ -52,20 +57,30 @@ const colors = [
 
 const Settings = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+  
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState(colors[0]);
+  const [newPaymentTypeName, setNewPaymentTypeName] = useState("");
 
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCategoryEditDialogOpen, setIsCategoryEditDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editCategoryName, setEditCategoryName] = useState("");
   const [editCategoryColor, setEditCategoryColor] = useState("");
 
+  const [isPaymentTypeEditDialogOpen, setIsPaymentTypeEditDialogOpen] = useState(false);
+  const [editingPaymentType, setEditingPaymentType] = useState<PaymentType | null>(null);
+  const [editPaymentTypeName, setEditPaymentTypeName] = useState("");
+
+  const getToken = () => {
+    const userInfoString = localStorage.getItem("userInfo");
+    if (!userInfoString) throw new Error("Usuário não autenticado.");
+    return JSON.parse(userInfoString).token;
+  }
 
   const fetchCategories = async () => {
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
+      const token = getToken();
       const response = await fetch("/api/categories", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -77,8 +92,23 @@ const Settings = () => {
     }
   };
 
+  const fetchPaymentTypes = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch("/api/payment-types", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Falha ao buscar tipos de pagamento");
+      const data = await response.json();
+      setPaymentTypes(data);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
+    fetchPaymentTypes();
   }, []);
 
   const handleAddCategory = async () => {
@@ -87,9 +117,7 @@ const Settings = () => {
       return;
     }
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
+      const token = getToken();
       const response = await fetch("/api/categories", {
         method: "POST",
         headers: {
@@ -107,21 +135,48 @@ const Settings = () => {
     }
   };
 
-  const handleEditClick = (category: Category) => {
+  const handleAddPaymentType = async () => {
+    if (!newPaymentTypeName.trim()) {
+      toast.error("O nome do tipo de pagamento não pode ser vazio.");
+      return;
+    }
+    try {
+      const token = getToken();
+      const response = await fetch("/api/payment-types", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newPaymentTypeName }),
+      });
+      if (!response.ok) throw new Error("Falha ao adicionar tipo de pagamento.");
+      toast.success("Tipo de pagamento adicionado com sucesso!");
+      setNewPaymentTypeName("");
+      fetchPaymentTypes();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleEditCategoryClick = (category: Category) => {
     setEditingCategory(category);
     setEditCategoryName(category.name);
     setEditCategoryColor(category.color || colors[0]);
-    setIsEditDialogOpen(true);
+    setIsCategoryEditDialogOpen(true);
+  }
+
+  const handleEditPaymentTypeClick = (pt: PaymentType) => {
+    setEditingPaymentType(pt);
+    setEditPaymentTypeName(pt.name);
+    setIsPaymentTypeEditDialogOpen(true);
   }
 
   const handleUpdateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCategory) return;
     try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
-
+        const token = getToken();
         const response = await fetch(`/api/categories/${editingCategory._id}`, {
             method: "PUT",
             headers: {
@@ -135,9 +190,35 @@ const Settings = () => {
             throw new Error("Falha ao atualizar a categoria.");
         }
         toast.success("Categoria atualizada com sucesso!");
-        setIsEditDialogOpen(false);
+        setIsCategoryEditDialogOpen(false);
         setEditingCategory(null);
         fetchCategories();
+    } catch (error: any) {
+        toast.error(error.message);
+    }
+  };
+  
+  const handleUpdatePaymentType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPaymentType) return;
+    try {
+        const token = getToken();
+        const response = await fetch(`/api/payment-types/${editingPaymentType._id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name: editPaymentTypeName }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Falha ao atualizar o tipo de pagamento.");
+        }
+        toast.success("Tipo de pagamento atualizado com sucesso!");
+        setIsPaymentTypeEditDialogOpen(false);
+        setEditingPaymentType(null);
+        fetchPaymentTypes();
     } catch (error: any) {
         toast.error(error.message);
     }
@@ -146,18 +227,29 @@ const Settings = () => {
 
   const handleDeleteCategory = async (id: string) => {
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
+      const token = getToken();
       const response = await fetch(`/api/categories/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Falha ao remover categoria.");
       toast.success("Categoria removida com sucesso!");
       fetchCategories();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleDeletePaymentType = async (id: string) => {
+    try {
+      const token = getToken();
+      const response = await fetch(`/api/payment-types/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Falha ao remover tipo de pagamento.");
+      toast.success("Tipo de pagamento removido com sucesso!");
+      fetchPaymentTypes();
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -173,49 +265,15 @@ const Settings = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-card-foreground flex items-center">
-              <Bell className="mr-2 h-5 w-5" />
-              Notificações
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-card-foreground">
-                  Avisos de Meta
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Receber alertas quando se aproximar da meta
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Ativo
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-card-foreground">
-                  Resumo Mensal
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Relatório no final de cada mês
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Ativo
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card lg:col-span-2">
-          <CardHeader>
             <CardTitle className="text-card-foreground flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center">
                 <Palette className="mr-2 h-5 w-5" />
-                Categorias
+                Categorias de Despesa
               </div>
-              <div className="flex gap-2 w-full sm:w-auto">
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2 mb-4">
                 <Input
                   placeholder="Nova categoria..."
                   value={newCategoryName}
@@ -224,64 +282,26 @@ const Settings = () => {
                 />
                 <Button
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   onClick={handleAddCategory}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Adicionar
                 </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            </div>
+            <div className="space-y-2">
               {categories.map((category) => (
-                <div
-                  key={category._id}
-                  className="flex items-center justify-between p-3 border border-border rounded-lg"
-                >
+                <div key={category._id} className="flex items-center justify-between p-2 border rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: category.color || "#ccc" }}
-                    />
-                    <span className="font-medium text-card-foreground">
-                      {category.name}
-                    </span>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: category.color || "#ccc" }} />
+                    <span className="font-medium">{category.name}</span>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditClick(category)}>
-                      <Edit className="h-3 w-3" />
-                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleEditCategoryClick(category)}><Edit className="h-3 w-3" /></Button>
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-3 w-3" /></Button></AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Você tem certeza absoluta?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. Todas as despesas
-                            associadas a esta categoria serão permanentemente
-                            excluídas.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteCategory(category._id)}
-                          >
-                            Continuar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
+                        <AlertDialogHeader><AlertDialogTitle>Você tem certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Todas as despesas associadas a esta categoria também serão removidas.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory(category._id)}>Continuar</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
@@ -293,87 +313,72 @@ const Settings = () => {
 
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-card-foreground">
-              Exportar Dados
+            <CardTitle className="text-card-foreground flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center">
+                <CreditCard className="mr-2 h-5 w-5" />
+                Tipos de Pagamento
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Baixar relatórios dos seus gastos</Label>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  Exportar CSV
+          <CardContent>
+            <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="Novo tipo de pagamento..."
+                  value={newPaymentTypeName}
+                  onChange={(e) => setNewPaymentTypeName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddPaymentType}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Exportar PDF
-                </Button>
-              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Sobre o App</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Versão</span>
-                <span className="font-medium text-card-foreground">
-                  1.0.0
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Última atualização
-                </span>
-                <span className="font-medium text-card-foreground">
-                  Dezembro 2024
-                </span>
-              </div>
+              {paymentTypes.map((pt) => (
+                <div key={pt._id} className="flex items-center justify-between p-2 border rounded-lg">
+                  <span className="font-medium">{pt.name}</span>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleEditPaymentTypeClick(pt)}><Edit className="h-3 w-3" /></Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-3 w-3" /></Button></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Você tem certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. As transações associadas perderão este tipo de pagamento.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaymentType(pt._id)}>Continuar</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
             </div>
-            <Button variant="outline" className="w-full">
-              Verificar atualizações
-            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Edit Category Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isCategoryEditDialogOpen} onOpenChange={setIsCategoryEditDialogOpen}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Editar Categoria</DialogTitle>
-            </DialogHeader>
-            {editingCategory && (
-                <form onSubmit={handleUpdateCategory}>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-category-name">Nome da Categoria</Label>
-                            <Input id="edit-category-name" value={editCategoryName} onChange={(e) => setEditCategoryName(e.target.value)} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Cor</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {colors.map(color => (
-                                    <button
-                                        type="button"
-                                        key={color}
-                                        className="w-8 h-8 rounded-full border-2"
-                                        style={{ backgroundColor: color, borderColor: editCategoryColor === color ? 'hsl(var(--primary))' : 'transparent' }}
-                                        onClick={() => setEditCategoryColor(color)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                        <Button type="submit">Salvar Alterações</Button>
-                    </DialogFooter>
-                </form>
-            )}
+            <DialogHeader><DialogTitle>Editar Categoria</DialogTitle></DialogHeader>
+            <form onSubmit={handleUpdateCategory}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2"><Label htmlFor="edit-category-name">Nome</Label><Input id="edit-category-name" value={editCategoryName} onChange={(e) => setEditCategoryName(e.target.value)} /></div>
+                    <div className="grid gap-2"><Label>Cor</Label><div className="flex flex-wrap gap-2">{colors.map(color => (<button type="button" key={color} className="w-8 h-8 rounded-full border-2" style={{ backgroundColor: color, borderColor: editCategoryColor === color ? 'hsl(var(--primary))' : 'transparent' }} onClick={() => setEditCategoryColor(color)} />))}</div></div>
+                </div>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isPaymentTypeEditDialogOpen} onOpenChange={setIsPaymentTypeEditDialogOpen}>
+        <DialogContent>
+            <DialogHeader><DialogTitle>Editar Tipo de Pagamento</DialogTitle></DialogHeader>
+            <form onSubmit={handleUpdatePaymentType}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2"><Label htmlFor="edit-pt-name">Nome</Label><Input id="edit-pt-name" value={editPaymentTypeName} onChange={(e) => setEditPaymentTypeName(e.target.value)} /></div>
+                </div>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
+            </form>
         </DialogContent>
       </Dialog>
     </div>

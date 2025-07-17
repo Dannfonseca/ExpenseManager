@@ -24,6 +24,11 @@ const recurringTransactionSchema = mongoose.Schema({
     ref: 'Category',
     required: false,
   },
+  paymentType: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PaymentType',
+    required: false,
+  },
   notes: {
     type: String,
   },

@@ -4,6 +4,7 @@
  * - A mensagem "API em modo de desenvolvimento" só aparecerá se NODE_ENV
  * for explicitamente definido como 'development', corrigindo o problema no deploy.
  * - Adicionada rota para transações recorrentes e jobs externos.
+ * - Adicionada rota para tipos de pagamento.
  */
 import express from 'express';
 import dotenv from 'dotenv';
@@ -19,9 +20,10 @@ import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import recurringTransactionRoutes from './routes/recurringTransactionRoutes.js';
+import paymentTypeRoutes from './routes/paymentTypeRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import logRoutes from './routes/logRoutes.js';
-import jobRoutes from './routes/jobRoutes.js'; // Importação que estava faltando
+import jobRoutes from './routes/jobRoutes.js';
 
 dotenv.config();
 
@@ -30,7 +32,6 @@ const app = express();
 const startServer = async () => {
   await connectDB();
 
-  // Script para atribuir role de admin (pode ser removido após a primeira execução bem-sucedida)
   const assignAdminRole = async () => {
     try {
       const adminEmail = 'russelmytho@gmail.com';
@@ -55,27 +56,24 @@ const startServer = async () => {
   app.use('/api/auth', authRoutes);
   app.use('/api/user', userRoutes);
   app.use('/api/categories', categoryRoutes);
+  app.use('/api/payment-types', paymentTypeRoutes);
   app.use('/api/transactions', transactionRoutes);
   app.use('/api/recurring-transactions', recurringTransactionRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/logs', logRoutes);
-  app.use('/api/jobs', jobRoutes); // Esta linha agora funciona, pois jobRoutes está importado
+  app.use('/api/jobs', jobRoutes);
 
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
-  // --- Lógica para servir o frontend ---
-  // Se não estivermos explicitamente em desenvolvimento, sirva o build de produção.
   if (process.env.NODE_ENV !== 'development') {
     const frontendDistPath = path.resolve(__dirname, '..', 'frontend', 'dist');
     app.use(express.static(frontendDistPath));
 
-    // Para qualquer outra rota, sirva o index.html do frontend
     app.get('*', (req, res) => {
       res.sendFile(path.resolve(frontendDistPath, 'index.html'));
     });
   } else {
-    // Apenas em desenvolvimento, mostre a mensagem da API.
     app.get('/', (req, res) => {
       res.send('API está rodando em modo de desenvolvimento...');
     });

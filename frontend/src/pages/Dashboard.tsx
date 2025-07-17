@@ -1,9 +1,9 @@
 /*
  * Adicionado controle de data independente para os cards de resumo.
- * - Novos estados (summaryMonth, summaryYear, summaryData) para gerenciar os dados dos cards.
- * - Inclusão de seletores de Mês/Ano que afetam apenas a seção "Visão Geral".
- * - A busca de dados para o resumo foi separada para otimizar o carregamento.
+ * - Novos estados para gerenciar os dados dos cards e dos gráficos.
+ * - Adicionada a funcionalidade de "Previsão" para gastos e receitas recorrentes.
  * - Os gráficos de "Análise Gráfica" e "Top Categorias" mantêm seus próprios controles de data.
+ * - Desabilitada a exibição dos gráficos e top categorias no modo "Previsão".
  */
 import {
   Card,
@@ -23,6 +23,7 @@ import {
   PieChart as PieChartIcon,
   TrendingUpDown,
   LineChart as LineChartIcon,
+  CalendarClock,
 } from "lucide-react";
 import {
   Popover,
@@ -117,13 +118,14 @@ const Dashboard = () => {
   const [activeChart, setActiveChart] = useState<"line" | "pie">("line");
   const navigate = useNavigate();
 
-  // State for Summary Cards
+  // State for Summary Cards and Forecast
   const [summaryMonth, setSummaryMonth] = useState(
     (new Date().getMonth() + 1).toString()
   );
   const [summaryYear, setSummaryYear] = useState(
     new Date().getFullYear().toString()
   );
+  const [isForecastView, setIsForecastView] = useState(false); // Controls the forecast view
   const [summaryData, setSummaryData] = useState<{
     totalIncome: number;
     totalExpenses: number;
@@ -197,19 +199,22 @@ const Dashboard = () => {
     return monthsList;
   }, []);
 
-  // Fetch data for Summary Cards
+  // Fetch data for Summary Cards or Forecast
   useEffect(() => {
-    const fetchSummaryData = async () => {
+    const fetchSummaryOrForecastData = async () => {
       setLoadingSummary(true);
       try {
         const userInfoString = localStorage.getItem("userInfo");
         if (!userInfoString) throw new Error("Usuário não autenticado.");
         const { token } = JSON.parse(userInfoString);
-        const url = `/api/dashboard/summary/${summaryYear}/${summaryMonth}`;
+
+        const endpoint = isForecastView ? 'forecast' : 'summary';
+        const url = `/api/dashboard/${endpoint}/${summaryYear}/${summaryMonth}`;
+        
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!response.ok) throw new Error("Falha ao buscar dados do resumo.");
+        if (!response.ok) throw new Error(`Falha ao buscar dados de ${isForecastView ? 'previsão' : 'resumo'}.`);
         const data = await response.json();
         setSummaryData({
           totalIncome: data.totalIncome,
@@ -222,8 +227,8 @@ const Dashboard = () => {
         setLoadingSummary(false);
       }
     };
-    fetchSummaryData();
-  }, [summaryMonth, summaryYear]);
+    fetchSummaryOrForecastData();
+  }, [summaryMonth, summaryYear, isForecastView]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -341,7 +346,7 @@ const Dashboard = () => {
   }, [topCategories]);
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="p-6 pt-16 sm:pt-6 space-y-6 bg-background min-h-screen">
       <div className="relative h-24 overflow-hidden rounded-b-2xl">
         <img
           src={heroImage}
@@ -358,13 +363,13 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      <div className="p-6 space-y-6 -mt-4 relative z-10">
+      <div className="space-y-6 -mt-4 relative z-10">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <p className="text-muted-foreground">
-                Visão geral de{" "}
+                {isForecastView ? "Previsão para" : "Visão geral de"}{" "}
                 {months.find((m) => m.value === summaryMonth)?.label}{" "}
                 {summaryYear}
               </p>
@@ -392,6 +397,17 @@ const Dashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <div className="flex items-center space-x-2">
+                <Switch
+                    id="forecast-switch"
+                    checked={isForecastView}
+                    onCheckedChange={setIsForecastView}
+                />
+                <Label htmlFor="forecast-switch" className="flex items-center gap-1 text-sm">
+                    <CalendarClock className="h-4 w-4" />
+                    Previsão
+                </Label>
+              </div>
             </div>
           </div>
           <Button
@@ -419,7 +435,7 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Receitas do Mês
+                    {isForecastView ? "Receitas Previstas" : "Receitas do Mês"}
                   </CardTitle>
                   <TrendingUp className="h-4 w-4 text-success" />
                 </CardHeader>
@@ -435,7 +451,7 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Despesas do Mês
+                    {isForecastView ? "Despesas Previstas" : "Despesas do Mês"}
                   </CardTitle>
                   <TrendingDown className="h-4 w-4 text-destructive" />
                 </CardHeader>
@@ -451,7 +467,7 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Saldo do Mês
+                    {isForecastView ? "Saldo Previsto" : "Saldo do Mês"}
                   </CardTitle>
                   <Scale className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -479,6 +495,7 @@ const Dashboard = () => {
                   <Select
                     value={activeChart}
                     onValueChange={(v) => setActiveChart(v as "line" | "pie")}
+                    disabled={isForecastView}
                   >
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue />
@@ -503,6 +520,7 @@ const Dashboard = () => {
                       <Select
                         value={selectedMonth}
                         onValueChange={setSelectedMonth}
+                        disabled={isForecastView}
                       >
                         <SelectTrigger className="w-36">
                           <SelectValue />
@@ -515,7 +533,7 @@ const Dashboard = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <Select value={selectedYear} onValueChange={setSelectedYear} disabled={isForecastView}>
                         <SelectTrigger className="w-24">
                           <SelectValue />
                         </SelectTrigger>
@@ -532,6 +550,7 @@ const Dashboard = () => {
                           id="compare-switch"
                           checked={isComparing}
                           onCheckedChange={setIsComparing}
+                          disabled={isForecastView}
                         />
                         <Label htmlFor="compare-switch">Comparar</Label>
                       </div>
@@ -544,6 +563,7 @@ const Dashboard = () => {
                           variant="outline"
                           role="combobox"
                           className="w-full sm:w-[200px] justify-between"
+                          disabled={isForecastView}
                         >
                           Selecionar Meses
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -596,7 +616,7 @@ const Dashboard = () => {
               </div>
               {activeChart === "line" && isComparing && (
                 <div className="flex gap-2 mt-4 justify-end">
-                  <Select value={compareMonth} onValueChange={setCompareMonth}>
+                  <Select value={compareMonth} onValueChange={setCompareMonth} disabled={isForecastView}>
                     <SelectTrigger className="w-36">
                       <SelectValue placeholder="Mês" />
                     </SelectTrigger>
@@ -608,7 +628,7 @@ const Dashboard = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={compareYear} onValueChange={setCompareYear}>
+                  <Select value={compareYear} onValueChange={setCompareYear} disabled={isForecastView}>
                     <SelectTrigger className="w-24">
                       <SelectValue placeholder="Ano" />
                     </SelectTrigger>
@@ -624,7 +644,11 @@ const Dashboard = () => {
               )}
             </CardHeader>
             <CardContent className="w-full aspect-video lg:h-96 lg:aspect-auto">
-              {activeChart === "line" ? (
+              {isForecastView ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Análise gráfica ainda não disponível para o modo de previsão.
+                </div>
+              ) : activeChart === "line" ? (
                 loading ? (
                   <Skeleton className="h-full w-full" />
                 ) : (
@@ -720,6 +744,7 @@ const Dashboard = () => {
                       v && setPieChartDataType(v)
                     }
                     className="mt-4 justify-center"
+                    disabled={isForecastView}
                   >
                     <ToggleGroupItem value="expenses">Despesas</ToggleGroupItem>
                     <ToggleGroupItem value="incomes">Receitas</ToggleGroupItem>
@@ -739,6 +764,7 @@ const Dashboard = () => {
                   <Select
                     value={categoriesMonth}
                     onValueChange={setCategoriesMonth}
+                    disabled={isForecastView}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
@@ -754,6 +780,7 @@ const Dashboard = () => {
                   <Select
                     value={categoriesYear}
                     onValueChange={setCategoriesYear}
+                    disabled={isForecastView}
                   >
                     <SelectTrigger className="w-20">
                       <SelectValue />
@@ -770,8 +797,12 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {loadingCategories
-                ? Array.from({ length: 5 }).map((_, i) => (
+              {isForecastView ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground p-8">
+                     Top Categorias ainda não disponível para o modo de previsão.
+                  </div>
+              ) : loadingCategories ? (
+                Array.from({ length: 5 }).map((_, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between"
@@ -780,7 +811,7 @@ const Dashboard = () => {
                       <Skeleton className="h-5 w-1/4" />
                     </div>
                   ))
-                : topCategoriesWithPercentage.map((category, index) => (
+                ) : topCategoriesWithPercentage.map((category, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div

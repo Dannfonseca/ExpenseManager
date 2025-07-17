@@ -1,8 +1,9 @@
 /*
  * Reorganizada a UI para melhor usabilidade.
- * - Adicionada a exibição de transações recorrentes futuras.
- * - Incluído um badge de frequência e as notas/observações em cada transação.
+ * - A exibição de transações recorrentes futuras foi removida desta página.
  * - O badge da categoria agora usa a cor definida pelo usuário como fundo.
+ * - Adicionado suporte para 'paymentType' (tipo de pagamento).
+ * - Otimizado o layout dos filtros para melhor responsividade.
  */
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
@@ -45,16 +45,14 @@ import {
   TrendingUp,
   TrendingDown,
   Scale,
-  Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// Função para obter uma cor de texto contrastante (preto ou branco)
 const getContrastColor = (hexColor: string) => {
   if (!hexColor) return '#000000';
   const r = parseInt(hexColor.slice(1, 3), 16);
@@ -64,12 +62,15 @@ const getContrastColor = (hexColor: string) => {
   return (yiq >= 128) ? '#000000' : '#FFFFFF';
 };
 
-
-// Interfaces
 interface Category {
   _id: string;
   name: string;
-  color?: string; // Adicionado 'color' opcional
+  color?: string;
+}
+
+interface PaymentType {
+  _id: string;
+  name: string;
 }
 
 interface Transaction {
@@ -78,18 +79,8 @@ interface Transaction {
   description: string;
   amount: number;
   category: Category | null;
+  paymentType: PaymentType | null;
   date: string;
-  notes?: string;
-}
-
-interface RecurringTransaction {
-  _id: string;
-  type: 'income' | 'expense';
-  description: string;
-  amount: number;
-  category: Category | null;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  nextOccurrenceDate: string;
   notes?: string;
 }
 
@@ -98,13 +89,6 @@ interface MonthTotals {
   expenses: number;
   balance: number;
 }
-
-const frequencyMap = {
-  daily: 'Diária',
-  weekly: 'Semanal',
-  monthly: 'Mensal',
-  yearly: 'Anual'
-};
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: (i + 1).toString(),
@@ -117,11 +101,12 @@ const years = Array.from({ length: 5 }, (_, i) =>
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allPaymentTypes, setAllPaymentTypes] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedPaymentType, setSelectedPaymentType] = useState<string>("all");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
@@ -130,6 +115,7 @@ const Transactions = () => {
     description: "",
     amount: "",
     category: "",
+    paymentType: "",
     notes: "",
   });
   const [editDate, setEditDate] = useState<Date | undefined>();
@@ -165,6 +151,9 @@ const Transactions = () => {
       if (selectedCategory && selectedCategory !== "all") {
         url.searchParams.append("category", selectedCategory);
       }
+      if (selectedPaymentType && selectedPaymentType !== "all") {
+        url.searchParams.append("paymentType", selectedPaymentType);
+      }
       if (searchTerm) {
         url.searchParams.append("search", searchTerm);
       }
@@ -188,52 +177,37 @@ const Transactions = () => {
     }
   };
   
-  const fetchRecurringTransactions = async () => {
-    try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) return;
-      const { token } = JSON.parse(userInfoString);
-
-      const response = await fetch('/api/recurring-transactions', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error('Falha ao buscar transações recorrentes');
-      const data = await response.json();
-      const filtered = data.filter((tx: RecurringTransaction) => {
-        const nextDate = parseISO(tx.nextOccurrenceDate);
-        return nextDate.getFullYear().toString() === selectedYear && (nextDate.getMonth() + 1).toString() === selectedMonth;
-      });
-      setRecurringTransactions(filtered);
-    } catch (error: any) {
-      toast.error(error.message);
-    }
-  };
-
-
-  const fetchAllCategories = async () => {
+  const fetchInitialData = async () => {
     try {
       const userInfoString = localStorage.getItem("userInfo");
       if (!userInfoString) throw new Error("Usuário não autenticado.");
       const { token } = JSON.parse(userInfoString);
-      const response = await fetch("/api/categories", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Falha ao buscar categorias.");
-      const data = await response.json();
-      setAllCategories(data);
+      
+      const [catRes, ptRes] = await Promise.all([
+        fetch("/api/categories", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/payment-types", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      
+      if (!catRes.ok) throw new Error("Falha ao buscar categorias.");
+      if (!ptRes.ok) throw new Error("Falha ao buscar tipos de pagamento.");
+
+      const catData = await catRes.json();
+      const ptData = await ptRes.json();
+
+      setAllCategories(catData);
+      setAllPaymentTypes(ptData);
     } catch (error: any) {
       toast.error(error.message);
     }
   };
 
   useEffect(() => {
-    fetchAllCategories();
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchTransactions();
-      fetchRecurringTransactions();
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
@@ -241,6 +215,7 @@ const Transactions = () => {
     selectedMonth,
     selectedYear,
     selectedCategory,
+    selectedPaymentType,
     searchTerm,
     transactionTypeFilter,
   ]);
@@ -252,6 +227,7 @@ const Transactions = () => {
       description: transaction.description,
       amount: transaction.amount.toString(),
       category: transaction.category?._id || "",
+      paymentType: transaction.paymentType?._id || "",
       notes: transaction.notes || "",
     });
     setEditDate(new Date(transaction.date));
@@ -272,6 +248,7 @@ const Transactions = () => {
         amount: parseFloat(editFormData.amount),
         date: editDate?.toISOString(),
         notes: editFormData.notes,
+        paymentType: editFormData.paymentType || null
       };
 
       if (editFormData.type === "expense") {
@@ -324,18 +301,6 @@ const Transactions = () => {
       toast.error(error.message);
     }
   };
-
-  const currentViewTotals = useMemo(() => {
-    const income = (transactions || [])
-      .filter((t) => t.type === "income")
-      .reduce((acc, t) => acc + t.amount, 0);
-    const expenses = (transactions || [])
-      .filter((t) => t.type === "expense")
-      .reduce((acc, t) => acc + t.amount, 0);
-    return { income, expenses, balance: income - expenses };
-  }, [transactions]);
-  
-  const allItemsCount = transactions.length + recurringTransactions.length;
 
   return (
     <div className="p-6 pt-16 sm:pt-6 space-y-6 bg-background min-h-screen">
@@ -439,8 +404,8 @@ const Transactions = () => {
 
       <Card className="border-border bg-card">
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col lg:flex-row gap-4 mb-4">
+            <div className="relative flex-grow">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar transações..."
@@ -449,67 +414,60 @@ const Transactions = () => {
                 className="pl-10"
               />
             </div>
-            <ToggleGroup
-              type="single"
-              value={transactionTypeFilter}
-              onValueChange={(value) =>
-                value && setTransactionTypeFilter(value as any)
-              }
-              className="flex-wrap"
-            >
-              <ToggleGroupItem value="all">Todos</ToggleGroupItem>
-              <ToggleGroupItem value="income">Receitas</ToggleGroupItem>
-              <ToggleGroupItem value="expense">Despesas</ToggleGroupItem>
-            </ToggleGroup>
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filtrar por categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as categorias</SelectItem>
-                {allCategories.map((category) => (
-                  <SelectItem key={category._id} value={category._id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <ToggleGroup
+                type="single"
+                value={transactionTypeFilter}
+                onValueChange={(value) =>
+                  value && setTransactionTypeFilter(value as any)
+                }
+                className="flex-wrap"
+              >
+                <ToggleGroupItem value="all">Todos</ToggleGroupItem>
+                <ToggleGroupItem value="income">Receitas</ToggleGroupItem>
+                <ToggleGroupItem value="expense">Despesas</ToggleGroupItem>
+              </ToggleGroup>
+              <div className="flex gap-2">
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Categorias" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    {allCategories.map((category) => (
+                      <SelectItem key={category._id} value={category._id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={selectedPaymentType}
+                  onValueChange={setSelectedPaymentType}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Tipos de Pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    {allPaymentTypes.map((pt) => (
+                      <SelectItem key={pt._id} value={pt._id}>
+                        {pt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <div className="mt-4 text-sm text-muted-foreground">
              <p>
               Exibindo{" "}
-              <span className="font-bold text-foreground">{allItemsCount}</span>{" "}
-              itens (transações e recorrências futuras). Total na visualização de transações:{" "}
-              <span className="font-bold text-success">
-                R${" "}
-                {currentViewTotals.income.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>{" "}
-              (Receitas) -{" "}
-              <span className="font-bold text-destructive">
-                R${" "}
-                {currentViewTotals.expenses.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>{" "}
-              (Despesas) ={" "}
-              <span
-                className={cn(
-                  "font-bold",
-                  currentViewTotals.balance >= 0
-                    ? "text-success"
-                    : "text-destructive"
-                )}
-              >
-                R${" "}
-                {currentViewTotals.balance.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
+              <span className="font-bold text-foreground">{transactions.length}</span>{" "}
+              transações.
             </p>
           </div>
         </CardContent>
@@ -533,60 +491,8 @@ const Transactions = () => {
               </CardContent>
             </Card>
           ))
-        ) : (allItemsCount) > 0 ? (
-          <>
-          {recurringTransactions.map((transaction) => (
-            <Card
-              key={`recurring-${transaction._id}`}
-              className="border-border bg-card/60 hover:shadow-md transition-shadow border-dashed"
-            >
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className="p-2 rounded-lg bg-muted">
-                        <Repeat className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-card-foreground truncate">
-                        {transaction.description}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-3 w-3" />
-                           Lançamento em: {format(parseISO(transaction.nextOccurrenceDate), "dd/MM/yyyy", { locale: ptBR })}
-                        </div>
-                        <Badge variant="outline">{frequencyMap[transaction.frequency]}</Badge>
-                        {transaction.category && (
-                          <Badge style={{
-                            backgroundColor: transaction.category.color,
-                            color: getContrastColor(transaction.category.color || "#000000")
-                          }}>
-                            {transaction.category.name}
-                          </Badge>
-                        )}
-                      </div>
-                      {transaction.notes && <p className="text-xs text-muted-foreground mt-1">{transaction.notes}</p>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`text-xl font-bold ${
-                        transaction.type === "income"
-                          ? "text-success"
-                          : "text-destructive"
-                      }`}
-                    >
-                      {transaction.type === "income" ? "+" : "-"} R${" "}
-                      {transaction.amount.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {transactions.map((transaction) => (
+        ) : (transactions.length) > 0 ? (
+          transactions.map((transaction) => (
             <Card
               key={transaction._id}
               className="border-border bg-card hover:shadow-md transition-shadow"
@@ -627,6 +533,7 @@ const Transactions = () => {
                             {transaction.category.name}
                           </Badge>
                         )}
+                        {transaction.paymentType && (<Badge variant="secondary">{transaction.paymentType.name}</Badge>)}
                       </div>
                       {transaction.notes && <p className="text-xs text-muted-foreground mt-1">{transaction.notes}</p>}
                     </div>
@@ -665,8 +572,7 @@ const Transactions = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
-          </>
+          ))
         ) : (
           <Card className="text-center p-8">
             <p className="text-muted-foreground">
@@ -680,120 +586,52 @@ const Transactions = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Transação</DialogTitle>
-            <DialogDescription>
-              Faça alterações na sua transação aqui. Clique em salvar quando
-              terminar.
-            </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <ToggleGroup
-              type="single"
-              value={editFormData.type}
-              onValueChange={(value: "expense" | "income") => {
-                if (value)
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    type: value,
-                    category: "",
-                  }));
-              }}
-            >
-              <ToggleGroupItem value="expense">
-                <ArrowDown className="mr-2 h-4 w-4 text-destructive" />
-                Despesa
-              </ToggleGroupItem>
-              <ToggleGroupItem value="income">
-                <ArrowUp className="mr-2 h-4 w-4 text-success" />
-                Receita
-              </ToggleGroupItem>
-            </ToggleGroup>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Descrição</Label>
-                <Input
-                  value={editFormData.description}
-                  onChange={(e) =>
-                    setEditFormData((p) => ({
-                      ...p,
-                      description: e.target.value,
-                    }))
-                  }
-                />
+                <Input value={editFormData.description} onChange={(e) => setEditFormData((p) => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
                 <Label>Valor</Label>
-                <Input
-                  type="number"
-                  value={editFormData.amount}
-                  onChange={(e) =>
-                    setEditFormData((p) => ({ ...p, amount: e.target.value }))
-                  }
-                />
+                <Input type="number" value={editFormData.amount} onChange={(e) => setEditFormData((p) => ({ ...p, amount: e.target.value }))} />
               </div>
             </div>
-            {editFormData.type === "expense" && (
-              <div>
-                <Label>Categoria</Label>
-                <Select
-                  value={editFormData.category}
-                  onValueChange={(value) =>
-                    setEditFormData((p) => ({ ...p, category: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allCategories.map((c) => (
-                      <SelectItem key={c._id} value={c._id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-4">
+              {editFormData.type === "expense" && (
+                <div>
+                  <Label>Categoria</Label>
+                  <Select value={editFormData.category} onValueChange={(value) => setEditFormData((p) => ({ ...p, category: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{allCategories.map((c) => (<SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>))}</SelectContent>
+                  </Select>
+                </div>
+              )}
+               <div>
+                  <Label>Tipo de Pagamento</Label>
+                  <Select value={editFormData.paymentType} onValueChange={(value) => setEditFormData((p) => ({ ...p, paymentType: value }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um tipo" /></SelectTrigger>
+                    <SelectContent>{allPaymentTypes.map((pt) => (<SelectItem key={pt._id} value={pt._id}>{pt.name}</SelectItem>))}</SelectContent>
+                  </Select>
+                </div>
+            </div>
             <div>
               <Label>Data</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editDate ? (
-                      format(editDate, "PP", { locale: ptBR })
-                    ) : (
-                      <span>Escolha uma data</span>
-                    )}
-                  </Button>
+                  <Button variant="outline" className="w-full justify-start"><CalendarIcon className="mr-2 h-4 w-4" />{editDate ? format(editDate, "PP", { locale: ptBR }) : (<span>Escolha uma data</span>)}</Button>
                 </PopoverTrigger>
-                <PopoverContent>
-                  <Calendar
-                    mode="single"
-                    selected={editDate}
-                    onSelect={setEditDate}
-                  />
-                </PopoverContent>
+                <PopoverContent><Calendar mode="single" selected={editDate} onSelect={setEditDate} /></PopoverContent>
               </Popover>
             </div>
             <div>
               <Label>Observações</Label>
-              <Textarea
-                value={editFormData.notes}
-                onChange={(e) =>
-                  setEditFormData((p) => ({ ...p, notes: e.target.value }))
-                }
-              />
+              <Textarea value={editFormData.notes} onChange={(e) => setEditFormData((p) => ({ ...p, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                variant="outline"
-                onClick={() => setEditingTransaction(null)}
-              >
-                Cancelar
-              </Button>
-            </DialogClose>
+            <DialogClose asChild><Button variant="outline" onClick={() => setEditingTransaction(null)}>Cancelar</Button></DialogClose>
             <Button onClick={handleUpdate}>Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>

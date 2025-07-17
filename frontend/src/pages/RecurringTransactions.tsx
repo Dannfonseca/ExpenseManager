@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
@@ -43,7 +42,6 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// Função para obter uma cor de texto contrastante (preto ou branco)
 const getContrastColor = (hexColor: string) => {
   if (!hexColor) return '#000000';
   const r = parseInt(hexColor.slice(1, 3), 16);
@@ -59,12 +57,18 @@ interface Category {
   color?: string;
 }
 
+interface PaymentType {
+  _id: string;
+  name: string;
+}
+
 interface RecurringTransaction {
   _id: string;
   type: 'income' | 'expense';
   description: string;
   amount: number;
   category: Category | null;
+  paymentType: PaymentType | null;
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
   startDate: string;
   nextOccurrenceDate: string;
@@ -82,6 +86,7 @@ const frequencyMap = {
 const RecurringTransactions = () => {
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allPaymentTypes, setAllPaymentTypes] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<RecurringTransaction | null>(null);
@@ -91,6 +96,7 @@ const RecurringTransactions = () => {
     description: "",
     amount: "",
     category: "",
+    paymentType: "",
     notes: "",
     frequency: "monthly",
   });
@@ -117,27 +123,28 @@ const RecurringTransactions = () => {
     }
   };
 
-  const fetchAllCategories = async () => {
+  const fetchInitialData = async () => {
     try {
         const userInfoString = localStorage.getItem("userInfo");
         if (!userInfoString) return;
         const { token } = JSON.parse(userInfoString);
-        const response = await fetch("/api/categories", {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-            const data = await response.json();
-            setAllCategories(data);
-        }
+        
+        const [catRes, ptRes] = await Promise.all([
+          fetch("/api/categories", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/payment-types", { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+
+        if (catRes.ok) setAllCategories(await catRes.json());
+        if (ptRes.ok) setAllPaymentTypes(await ptRes.json());
     } catch (error) {
-        console.error("Failed to fetch categories for edit dialog");
+        console.error("Failed to fetch categories/payment types for edit dialog");
     }
   };
 
 
   useEffect(() => {
     fetchRecurringTransactions();
-    fetchAllCategories();
+    fetchInitialData();
   }, []);
 
   const monthlyTotals = useMemo(() => {
@@ -175,6 +182,7 @@ const RecurringTransactions = () => {
       description: transaction.description,
       amount: transaction.amount.toString(),
       category: transaction.category?._id || "",
+      paymentType: transaction.paymentType?._id || "",
       notes: transaction.notes || "",
       frequency: transaction.frequency,
     });
@@ -200,6 +208,7 @@ const RecurringTransactions = () => {
             endDate: editEndDate?.toISOString() || null,
             frequency: editFormData.frequency,
             notes: editFormData.notes,
+            paymentType: editFormData.paymentType || null,
         };
 
         if (editFormData.type === 'expense') {
@@ -315,6 +324,7 @@ const RecurringTransactions = () => {
                                 {tx.category.name}
                             </Badge>
                         )}
+                        {tx.paymentType && (<Badge variant="secondary">{tx.paymentType.name}</Badge>)}
                         <span>Próxima: {format(parseISO(tx.nextOccurrenceDate), 'dd/MM/yyyy', { locale: ptBR })}</span>
                         {tx.endDate && <span>Termina em: {format(parseISO(tx.endDate), 'dd/MM/yyyy', { locale: ptBR })}</span>}
                       </div>
@@ -355,7 +365,6 @@ const RecurringTransactions = () => {
         </CardContent>
       </Card>
       
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
             <DialogHeader>
@@ -374,17 +383,24 @@ const RecurringTransactions = () => {
                             <Input type="number" value={editFormData.amount} onChange={(e) => setEditFormData(p => ({ ...p, amount: e.target.value }))} />
                           </div>
                        </div>
-                       {editFormData.type === 'expense' && (
-                          <div>
-                            <Label>Categoria</Label>
-                            <Select value={editFormData.category} onValueChange={(value) => setEditFormData(p => ({ ...p, category: value }))}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {allCategories.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                          </div>
-                       )}
+                       <div className="grid grid-cols-2 gap-4">
+                           {editFormData.type === 'expense' && (
+                              <div>
+                                <Label>Categoria</Label>
+                                <Select value={editFormData.category} onValueChange={(value) => setEditFormData(p => ({ ...p, category: value }))}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>{allCategories.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </div>
+                           )}
+                           <div>
+                                <Label>Tipo de Pagamento</Label>
+                                <Select value={editFormData.paymentType} onValueChange={(value) => setEditFormData(p => ({ ...p, paymentType: value }))}>
+                                    <SelectTrigger><SelectValue placeholder="Selecione um tipo" /></SelectTrigger>
+                                    <SelectContent>{allPaymentTypes.map(pt => <SelectItem key={pt._id} value={pt._id}>{pt.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                       </div>
                        <div className="grid grid-cols-2 gap-4">
                            <div>
                                 <Label>Data de Início</Label>

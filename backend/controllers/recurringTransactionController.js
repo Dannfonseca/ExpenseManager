@@ -4,12 +4,10 @@ import { z } from 'zod';
 import logger from '../utils/logger.js';
 import { add, sub } from 'date-fns';
 
-// Função para calcular a próxima ocorrência
 const calculateNextOccurrence = (startDate, frequency) => {
   const now = new Date();
   let nextDate = new Date(startDate);
 
-  // Se a próxima data já passou, calcula a próxima a partir de hoje
   while (nextDate < now) {
     switch (frequency) {
       case 'daily':
@@ -39,6 +37,7 @@ const recurringTransactionSchema = z
     endDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Data final inválida.' }).optional().or(z.literal('')),
     frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
     category: z.string().regex(/^[0-9a-fA-F]{24}$/, 'ID de categoria inválido.').optional().or(z.literal('')),
+    paymentType: z.string().regex(/^[0-9a-fA-F]{24}$/, 'ID de tipo de pagamento inválido.').optional().or(z.literal('')),
     notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
@@ -59,6 +58,7 @@ const getRecurringTransactions = asyncHandler(async (req, res) => {
   logger.logEvent('INFO', `User ${req.user._id} fetching recurring transactions.`);
   const recurringTransactions = await RecurringTransaction.find({ user: req.user._id })
     .populate('category', 'name color')
+    .populate('paymentType', 'name')
     .sort({ nextOccurrenceDate: 1 });
   res.json(recurringTransactions);
 });
@@ -68,7 +68,7 @@ const getRecurringTransactions = asyncHandler(async (req, res) => {
 // @access  Private
 const createRecurringTransaction = asyncHandler(async (req, res) => {
   const parsedBody = recurringTransactionSchema.parse(req.body);
-  const { type, description, amount, startDate, endDate, frequency, category, notes } = parsedBody;
+  const { type, description, amount, startDate, endDate, frequency, category, paymentType, notes } = parsedBody;
 
   logger.logEvent('INFO', `User ${req.user._id} creating recurring ${type}: "${description}".`);
   
@@ -83,6 +83,7 @@ const createRecurringTransaction = asyncHandler(async (req, res) => {
     endDate: endDate ? new Date(endDate) : null,
     frequency,
     category: type === 'expense' ? category : null,
+    paymentType: paymentType || null,
     notes,
     nextOccurrenceDate
   });
@@ -97,7 +98,7 @@ const createRecurringTransaction = asyncHandler(async (req, res) => {
 // @access  Private
 const updateRecurringTransaction = asyncHandler(async (req, res) => {
   const parsedBody = recurringTransactionSchema.parse(req.body);
-  const { type, description, amount, startDate, endDate, frequency, category, notes } = parsedBody;
+  const { type, description, amount, startDate, endDate, frequency, category, paymentType, notes } = parsedBody;
   const transactionId = req.params.id;
   
   const recurringTransaction = await RecurringTransaction.findById(transactionId);
@@ -110,6 +111,7 @@ const updateRecurringTransaction = asyncHandler(async (req, res) => {
       recurringTransaction.endDate = endDate ? new Date(endDate) : null;
       recurringTransaction.frequency = frequency;
       recurringTransaction.category = type === 'expense' ? category : null;
+      recurringTransaction.paymentType = paymentType || recurringTransaction.paymentType;
       recurringTransaction.notes = notes;
       recurringTransaction.nextOccurrenceDate = calculateNextOccurrence(new Date(startDate), frequency);
 
