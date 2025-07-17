@@ -1,3 +1,8 @@
+/*
+ * Guia de Uso atualizado para incluir as novas funcionalidades.
+ * - Detalhada a funcionalidade de "Previsão" no Dashboard.
+ * - Adicionada uma nova seção para explicar o gerenciamento de "Tipos de Pagamento".
+ */
 import {
   Accordion,
   AccordionContent,
@@ -6,7 +11,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, AlertCircle, Repeat } from "lucide-react"; // Ícone 'Repeat' importado aqui
+import { BookOpen, AlertCircle, Repeat, CreditCard, CalendarClock } from "lucide-react"; 
 
 const Guide = () => {
   return (
@@ -29,13 +34,12 @@ const Guide = () => {
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-1">
               <AccordionTrigger>Dashboard</AccordionTrigger>
-              <AccordionContent className="space-y-2">
+              <AccordionContent className="space-y-4">
                 <p>
                   O <strong>Dashboard</strong> é sua central de controle. Aqui
-                  você tem uma visão geral da sua saúde financeira para o mês e
-                  ano selecionados.
+                  você tem uma visão geral da sua saúde financeira.
                 </p>
-                <ul className="list-disc pl-5 space-y-1">
+                <ul className="list-disc pl-5 space-y-2">
                   <li>
                     <strong>Cards de Resumo:</strong> Mostram o total de{" "}
                     <Badge variant="secondary" className="text-success">
@@ -45,7 +49,7 @@ const Guide = () => {
                     <Badge variant="secondary" className="text-destructive">
                       Despesas
                     </Badge>{" "}
-                    e o <strong>Saldo Final</strong> do período.
+                    e o <strong>Saldo Final</strong> do período selecionado.
                   </li>
                   <li>
                     <strong>Análise Gráfica:</strong> Visualize seus gastos
@@ -59,6 +63,15 @@ const Guide = () => {
                     despesa no mês.
                   </li>
                 </ul>
+                <div className="p-3 mt-2 bg-muted rounded-md flex items-start">
+                    <CalendarClock className="h-5 w-5 mr-3 mt-0.5 text-primary" />
+                    <div>
+                        <h4 className="font-semibold">Modo Previsão</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Ative a chave <strong>"Previsão"</strong> para ver uma projeção dos seus saldos futuros. O sistema calculará automaticamente suas receitas e despesas recorrentes para qualquer mês futuro, ajudando você a se planejar financeiramente.
+                        </p>
+                    </div>
+                </div>
               </AccordionContent>
             </AccordionItem>
 
@@ -84,9 +97,10 @@ const Guide = () => {
                   </li>
                   <li>
                     <strong>Transação Recorrente:</strong> Ative esta opção para
-                    lançamentos que se repetem, como salários, aluguéis ou
-                    assinaturas. Você poderá definir a frequência (mensal,
-                    semanal, etc.) e uma data final, se houver.
+                    lançamentos que se repetem, como salários ou aluguéis.
+                  </li>
+                   <li>
+                    <strong>Tipo de Pagamento:</strong> (Opcional) Especifique como a despesa foi paga (ex: Cartão de Crédito, Pix, Dinheiro) para uma análise mais detalhada. Você pode criar seus próprios tipos de pagamento na tela de Configurações.
                   </li>
                   <li>
                     <strong>Categoria:</strong> Atribua uma categoria a cada
@@ -107,9 +121,7 @@ const Guide = () => {
                 <ul className="list-disc pl-5 space-y-1">
                   <li>
                     <strong>Transações:</strong> Lista todos os lançamentos já
-                    efetuados. Você pode filtrar por mês, ano, tipo ou
-                    categoria. Também mostra as recorrências que estão para
-                    acontecer no mês selecionado.
+                    efetuados. Você pode filtrar por mês, ano, tipo, categoria ou tipo de pagamento.
                   </li>
                   <li>
                     <strong>Recorrências:</strong> Um local centralizado para
@@ -119,10 +131,10 @@ const Guide = () => {
                   </li>
                 </ul>
                 <div className="p-3 mt-2 bg-muted rounded-md flex items-start">
-                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 text-primary" />
+                    <AlertCircle className="h-5 w-5 mr-3 mt-0.5 text-primary" />
                     <div>
                         <h4 className="font-semibold">Dica de mestre</h4>
-                        <p className="text-sm text-muted-foreground">Na página de Transações, as recorrências futuras aparecem com um design tracejado e um ícone <Repeat className="inline h-4 w-4" /> para fácil identificação.</p>
+                        <p className="text-sm text-muted-foreground">Na página de Transações, as recorrências que ainda vão acontecer no mês selecionado aparecem com um design tracejado e um ícone <Repeat className="inline h-4 w-4" /> para fácil identificação.</p>
                     </div>
                 </div>
               </AccordionContent>
@@ -130,13 +142,29 @@ const Guide = () => {
             
             <AccordionItem value="item-4">
               <AccordionTrigger>Configurações</AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className="space-y-3">
                 <p>
                   Na área de <strong>Configurações</strong>, você pode
-                  personalizar sua experiência. Crie novas categorias de
-                  despesas, defina cores para elas e gerencie outras
-                  preferências da sua conta.
+                  personalizar sua experiência.
                 </p>
+                 <div className="p-3 bg-card border rounded-md">
+                    <h4 className="font-semibold flex items-center mb-1">
+                      <Palette className="h-4 w-4 mr-2" />
+                      Categorias de Despesa
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Crie e gerencie as categorias para classificar suas despesas. Atribua cores para facilitar a identificação visual nos gráficos e relatórios.
+                    </p>
+                 </div>
+                 <div className="p-3 bg-card border rounded-md">
+                    <h4 className="font-semibold flex items-center mb-1">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Tipos de Pagamento
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Cadastre as formas como você realiza seus pagamentos (ex: "Cartão Nubank", "Conta Corrente Itaú", "Dinheiro"). Isso permite um controle ainda mais fino sobre para onde seu dinheiro está indo.
+                    </p>
+                 </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
