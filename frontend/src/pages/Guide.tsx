@@ -2,6 +2,7 @@
  * Guia de Uso atualizado para incluir as novas funcionalidades.
  * - Detalhada a funcionalidade de "Previsão" no Dashboard.
  * - Adicionada uma nova seção para explicar o gerenciamento de "Tipos de Pagamento".
+ * - Corrigida a importação do ícone 'Palette' que estava faltando.
  */
 import {
   Accordion,
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, AlertCircle, Repeat, CreditCard, CalendarClock } from "lucide-react"; 
+import { BookOpen, AlertCircle, Repeat, CreditCard, CalendarClock, Palette } from "lucide-react"; 
 
 const Guide = () => {
   return (
