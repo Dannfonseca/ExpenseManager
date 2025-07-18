@@ -4,6 +4,7 @@
  * Adicionado formulário condicional para criação de transações recorrentes.
  * Adicionado campo opcional 'paymentType' (tipo de pagamento).
  * Corrigido erro no componente Select ao remover a opção com valor vazio.
+ * Adicionado botão para navegar para o modo de inserção em planilha.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -37,6 +38,7 @@ import {
   ArrowDown,
   ArrowUp,
   Landmark,
+  Sheet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -163,20 +165,27 @@ const AddTransaction = () => {
 
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Adicionar Transação
-          </h1>
-          <p className="text-muted-foreground">
-            Registre uma nova receita ou despesa
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar
+              </Button>
+              <div>
+                  <h1 className="text-3xl font-bold text-foreground">
+                      Adicionar Transação
+                  </h1>
+                  <p className="text-muted-foreground">
+                      Registre uma nova receita ou despesa
+                  </p>
+              </div>
+          </div>
+          <Button variant="outline" onClick={() => navigate('/add-transactions-sheet')}>
+              <Sheet className="mr-2 h-4 w-4" />
+              Modo Planilha
+          </Button>
       </div>
+
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
         <div className="flex items-center space-x-2">

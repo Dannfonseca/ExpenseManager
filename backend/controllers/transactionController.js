@@ -7,6 +7,7 @@
  * - Corrigidas as chamadas de logger para usar o novo método logEvent.
  * Adicionado suporte para 'paymentType' (tipo de pagamento).
  * Corrigida a lógica de filtragem para aplicar todos os filtros no banco de dados, convertendo IDs para ObjectId.
+ * Adicionada a função createBulkTransactions para inserção em massa.
  */
 import asyncHandler from 'express-async-handler';
 import Transaction from '../models/Transaction.js';
@@ -44,6 +45,8 @@ const transactionSchema = z
       });
     }
   });
+
+const bulkTransactionSchema = z.array(transactionSchema);
 
 
 // @desc    Lista todas as transações do usuário com filtros
@@ -130,6 +133,29 @@ const createTransaction = asyncHandler(async (req, res) => {
   res.status(201).json(createdTransaction);
 });
 
+// @desc    Cria múltiplas transações
+// @route   POST /api/transactions/bulk
+// @access  Private
+const createBulkTransactions = asyncHandler(async (req, res) => {
+  const parsedBody = bulkTransactionSchema.parse(req.body);
+  const userId = req.user._id;
+
+  logger.logEvent('INFO', `User ${userId} creating ${parsedBody.length} transactions in bulk.`);
+
+  const transactionsToCreate = parsedBody.map(tx => ({
+    ...tx,
+    user: userId,
+    date: new Date(tx.date),
+    category: tx.type === 'expense' ? tx.category : null,
+    paymentType: tx.paymentType || null,
+  }));
+
+  const createdTransactions = await Transaction.insertMany(transactionsToCreate);
+
+  logger.logEvent('INFO', `${createdTransactions.length} transactions created successfully for user ${userId}.`);
+  res.status(201).json(createdTransactions);
+});
+
 // @desc    Obtém uma transação específica
 // @route   GET /api/transactions/:id
 // @access  Private
@@ -201,4 +227,4 @@ const deleteTransaction = asyncHandler(async (req, res) => {
     }
 });
 
-export { getTransactions, createTransaction, getTransactionById, updateTransaction, deleteTransaction };
+export { getTransactions, createTransaction, getTransactionById, updateTransaction, deleteTransaction, createBulkTransactions };
