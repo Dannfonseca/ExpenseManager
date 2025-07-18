@@ -4,6 +4,7 @@
  * - Adicionado espaçamento no topo para corrigir sobreposição do título no modo mobile.
  * - Implementada a funcionalidade completa de edição de categorias.
  * - Adicionada a funcionalidade de CRUD para Tipos de Pagamento.
+ * - O seletor de cores foi trocado por um input do tipo 'color' (RGB).
  */
 import {
   Card,
@@ -49,18 +50,12 @@ interface PaymentType {
   name: string;
 }
 
-const colors = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#F7B801", "#f94144",
-  "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"
-];
-
-
 const Settings = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryColor, setNewCategoryColor] = useState(colors[0]);
+  const [newCategoryColor, setNewCategoryColor] = useState("#4ECDC4");
   const [newPaymentTypeName, setNewPaymentTypeName] = useState("");
 
   const [isCategoryEditDialogOpen, setIsCategoryEditDialogOpen] = useState(false);
@@ -162,7 +157,7 @@ const Settings = () => {
   const handleEditCategoryClick = (category: Category) => {
     setEditingCategory(category);
     setEditCategoryName(category.name);
-    setEditCategoryColor(category.color || colors[0]);
+    setEditCategoryColor(category.color || "#000000");
     setIsCategoryEditDialogOpen(true);
   }
 
@@ -280,6 +275,7 @@ const Settings = () => {
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   className="flex-1"
                 />
+                <Input type="color" value={newCategoryColor} onChange={e => setNewCategoryColor(e.target.value)} className="w-12 h-10 p-1" />
                 <Button
                   size="sm"
                   onClick={handleAddCategory}
@@ -363,7 +359,14 @@ const Settings = () => {
             <form onSubmit={handleUpdateCategory}>
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2"><Label htmlFor="edit-category-name">Nome</Label><Input id="edit-category-name" value={editCategoryName} onChange={(e) => setEditCategoryName(e.target.value)} /></div>
-                    <div className="grid gap-2"><Label>Cor</Label><div className="flex flex-wrap gap-2">{colors.map(color => (<button type="button" key={color} className="w-8 h-8 rounded-full border-2" style={{ backgroundColor: color, borderColor: editCategoryColor === color ? 'hsl(var(--primary))' : 'transparent' }} onClick={() => setEditCategoryColor(color)} />))}</div></div>
+                    <div className="grid gap-2">
+                      <Label>Cor</Label>
+                      <div className="flex items-center gap-2">
+                        <Input id="edit-category-color" type="color" value={editCategoryColor} onChange={(e) => setEditCategoryColor(e.target.value)} className="w-12 h-10 p-1" />
+                        <div className="w-8 h-8 rounded-full border" style={{ backgroundColor: editCategoryColor }} />
+                        <span className="text-sm text-muted-foreground">{editCategoryColor.toUpperCase()}</span>
+                      </div>
+                    </div>
                 </div>
                 <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
             </form>
