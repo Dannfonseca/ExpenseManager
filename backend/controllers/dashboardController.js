@@ -6,6 +6,7 @@
  * - Lógica da função getDashboardForecast totalmente refeita para calcular todas as ocorrências futuras dentro de um mês.
  * - A função getDashboardForecast agora também projeta dados para os gráficos (gastos diários e top categorias).
  * - A função getDashboardSummary agora inclui transações recorrentes no cálculo total.
+ * - As funções getDashboardSummary e getCategoryBreakdown agora retornam a cor da categoria.
  */
 import asyncHandler from 'express-async-handler';
 import Transaction from '../models/Transaction.js';
@@ -85,7 +86,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
         { $group: { _id: '$category', total: { $sum: '$amount' } } },
         { $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'categoryInfo' } },
         { $unwind: { path: "$categoryInfo", preserveNullAndEmptyArrays: true } },
-        { $project: { name: { $ifNull: [ '$categoryInfo.name', 'Sem Categoria' ] }, total: '$total' } }
+        { $project: { name: { $ifNull: [ '$categoryInfo.name', 'Sem Categoria' ] }, total: '$total', color: '$categoryInfo.color' } }
     ]);
 
     // 2. Apurar transações recorrentes
@@ -176,7 +177,7 @@ const getCategoryBreakdown = asyncHandler(async (req, res) => {
         { $group: { _id: '$category', total: { $sum: '$amount' } } },
         { $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'categoryInfo' } },
         { $unwind: { path: "$categoryInfo", preserveNullAndEmptyArrays: true } },
-        { $project: { name: { $ifNull: [ '$categoryInfo.name', 'Sem Categoria' ] }, total: '$total' } }
+        { $project: { name: { $ifNull: [ '$categoryInfo.name', 'Sem Categoria' ] }, total: '$total', color: '$categoryInfo.color' } }
     ]);
     
     const recurringTransactions = await RecurringTransaction.find({
@@ -288,7 +289,7 @@ const getDashboardForecast = asyncHandler(async (req, res) => {
     const topCategories = Array.from(categoryTotals.values())
         .sort((a, b) => b.total - a.total)
         .slice(0, 5)
-        .map(c => ({ name: c.name, total: c.total }));
+        .map(c => ({ name: c.name, total: c.total, color: c.color }));
 
     logger.logEvent('AUTH', `[FORECAST] Final forecast for ${month}/${year}: Income=${totalIncome.toFixed(2)}, Expenses=${totalExpenses.toFixed(2)}`);
 
