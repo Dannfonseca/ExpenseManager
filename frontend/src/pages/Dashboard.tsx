@@ -4,6 +4,9 @@
  * - Adicionada a funcionalidade de "Previsão" para gastos e receitas recorrentes.
  * - Os gráficos de "Análise Gráfica" e "Top Categorias" mantêm seus próprios controles de data.
  * - Desabilitada a exibição dos gráficos e top categorias no modo "Previsão".
+ * - Adicionada cor customizada para a categoria "Recorrências" no gráfico de pizza.
+ * - Gráfico de pizza e lista de top categorias agora usam as cores dinâmicas da API.
+ * - Melhorada a estilização do card "Top Categorias" para melhor espaçamento.
  */
 import {
   Card,
@@ -72,17 +75,23 @@ interface DailyExpense {
   day: number;
   amount: number;
 }
+interface TopCategory {
+  name: string;
+  total: number;
+  color?: string;
+}
 interface DashboardData {
   totalIncome: number;
   totalExpenses: number;
   balance: number;
   dailyExpenses: DailyExpense[];
   comparisonDailyExpenses: DailyExpense[] | null;
-  topCategories: { name: string; total: number }[];
+  topCategories: TopCategory[];
 }
 interface BreakdownData {
   name: string;
   total: number;
+  color?: string;
 }
 interface ComparisonPieData {
   [key: string]: {
@@ -104,6 +113,8 @@ const COLORS = [
   "#8884d8",
   "#82ca9d",
 ];
+const RECURRENCE_COLOR = "#FF6347"; // Cor para a categoria 'Recorrências'
+
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: (i + 1).toString(),
   label: new Date(0, i).toLocaleString("pt-BR", { month: "long" }),
@@ -171,9 +182,7 @@ const Dashboard = () => {
   const [categoriesYear, setCategoriesYear] = useState(
     new Date().getFullYear().toString()
   );
-  const [topCategories, setTopCategories] = useState<
-    { name: string; total: number }[]
-  >([]);
+  const [topCategories, setTopCategories] = useState<TopCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
   const availableMonths = useMemo(() => {
@@ -721,7 +730,7 @@ const Dashboard = () => {
                                   (entry, index) => (
                                     <Cell
                                       key={`cell-${index}`}
-                                      fill={COLORS[index % COLORS.length]}
+                                      fill={entry.name === 'Recorrências' ? RECURRENCE_COLOR : entry.color || COLORS[index % COLORS.length]}
                                     />
                                   )
                                 )}
@@ -811,22 +820,21 @@ const Dashboard = () => {
                       <Skeleton className="h-5 w-1/4" />
                     </div>
                   ))
-                ) : topCategoriesWithPercentage.map((category, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
+                ) : topCategoriesWithPercentage.length > 0 ? (
+                  topCategoriesWithPercentage.map((category, index) => (
+                    <div key={index} className="flex items-center justify-between gap-4">
+                      <div className="flex items-center space-x-3 min-w-0">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{
-                            backgroundColor: `hsl(${
-                              200 + index * 40
-                            }, 76%, ${40 + index * 10}%)`,
+                            backgroundColor: category.name === 'Recorrências' ? RECURRENCE_COLOR : category.color || `hsl(${200 + index * 40}, 76%, ${40 + index * 10}%)`,
                           }}
                         />
-                        <span className="text-sm font-medium text-card-foreground">
+                        <span className="text-sm font-medium text-card-foreground truncate">
                           {category.name || "Sem Categoria"}
                         </span>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <div className="text-sm font-semibold text-card-foreground">
                           R${" "}
                           {category.total.toLocaleString("pt-BR", {
@@ -838,7 +846,12 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-4">
+                    Nenhuma despesa encontrada.
+                  </div>
+                )}
             </CardContent>
           </Card>
         </div>
