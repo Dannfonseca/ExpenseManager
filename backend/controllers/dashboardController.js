@@ -1,13 +1,3 @@
-/*
- * Corrigido o erro de exportação e implementada a busca de dados para o gráfico de pizza.
- * - A função getCategoryBreakdown foi adicionada e exportada corretamente.
- * - Corrigidas as chamadas de logger para usar o novo método logEvent.
- * - Adicionada a função getDashboardForecast para previsão de gastos recorrentes.
- * - Lógica da função getDashboardForecast totalmente refeita para calcular todas as ocorrências futuras dentro de um mês.
- * - A função getDashboardForecast agora também projeta dados para os gráficos (gastos diários e top categorias).
- * - A função getDashboardSummary agora inclui transações recorrentes no cálculo total.
- * - As funções getDashboardSummary e getCategoryBreakdown agora retornam a cor da categoria.
- */
 import asyncHandler from 'express-async-handler';
 import Transaction from '../models/Transaction.js';
 import RecurringTransaction from '../models/RecurringTransaction.js';

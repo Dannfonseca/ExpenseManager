@@ -1,11 +1,3 @@
-/*
- * Ajustada a submissão do formulário para não enviar o campo 'category'
- * quando a transação for do tipo 'income' (receita).
- * Adicionado formulário condicional para criação de transações recorrentes.
- * Adicionado campo opcional 'paymentType' (tipo de pagamento).
- * Corrigido erro no componente Select ao remover a opção com valor vazio.
- * Adicionado botão para navegar para o modo de inserção em planilha.
- */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

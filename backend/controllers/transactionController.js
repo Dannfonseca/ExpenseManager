@@ -1,14 +1,3 @@
-/*
- * Corrigido o schema de validação para a rota de ATUALIZAÇÃO.
- * - Aplicada a mesma lógica .superRefine() para a função 'updateTransaction',
- * garantindo que a categoria seja validada apenas para despesas.
- * Adicionados filtros por data e tipo na busca de transações.
- * Refatorada a lógica de busca para garantir a consistência dos dados.
- * - Corrigidas as chamadas de logger para usar o novo método logEvent.
- * Adicionado suporte para 'paymentType' (tipo de pagamento).
- * Corrigida a lógica de filtragem para aplicar todos os filtros no banco de dados, convertendo IDs para ObjectId.
- * Adicionada a função createBulkTransactions para inserção em massa.
- */
 import asyncHandler from 'express-async-handler';
 import Transaction from '../models/Transaction.js';
 import { z } from 'zod';
@@ -49,9 +38,6 @@ const transactionSchema = z
 const bulkTransactionSchema = z.array(transactionSchema);
 
 
-// @desc    Lista todas as transações do usuário com filtros
-// @route   GET /api/transactions
-// @access  Private
 const getTransactions = asyncHandler(async (req, res) => {
     const { category, search, month, year, type, paymentType } = req.query;
     const userId = req.user._id;
@@ -108,9 +94,6 @@ const getTransactions = asyncHandler(async (req, res) => {
     });
   });
 
-// @desc    Cria uma nova transação
-// @route   POST /api/transactions
-// @access  Private
 const createTransaction = asyncHandler(async (req, res) => {
   const parsedBody = transactionSchema.parse(req.body);
   const { type, description, amount, date, category, paymentType, notes } = parsedBody;
@@ -133,9 +116,6 @@ const createTransaction = asyncHandler(async (req, res) => {
   res.status(201).json(createdTransaction);
 });
 
-// @desc    Cria múltiplas transações
-// @route   POST /api/transactions/bulk
-// @access  Private
 const createBulkTransactions = asyncHandler(async (req, res) => {
   const parsedBody = bulkTransactionSchema.parse(req.body);
   const userId = req.user._id;
@@ -156,9 +136,6 @@ const createBulkTransactions = asyncHandler(async (req, res) => {
   res.status(201).json(createdTransactions);
 });
 
-// @desc    Obtém uma transação específica
-// @route   GET /api/transactions/:id
-// @access  Private
 const getTransactionById = asyncHandler(async (req, res) => {
     const transactionId = req.params.id;
     logger.logEvent('INFO', `User ${req.user._id} fetching transaction with ID ${transactionId}.`);
@@ -176,9 +153,6 @@ const getTransactionById = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Atualiza uma transação
-// @route   PUT /api/transactions/:id
-// @access  Private
 const updateTransaction = asyncHandler(async (req, res) => {
     const parsedBody = transactionSchema.parse(req.body);
     const { type, description, amount, date, category, paymentType, notes } = parsedBody;
@@ -207,10 +181,6 @@ const updateTransaction = asyncHandler(async (req, res) => {
     }
 });
 
-
-// @desc    Deleta uma transação
-// @route   DELETE /api/transactions/:id
-// @access  Private
 const deleteTransaction = asyncHandler(async (req, res) => {
     const transactionId = req.params.id;
     logger.logEvent('INFO', `User ${req.user._id} attempting to delete transaction ${transactionId}.`);

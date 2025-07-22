@@ -1,11 +1,3 @@
-/*
- * Adicionado um diálogo de confirmação para a exclusão de categorias.
- * - Utiliza o componente AlertDialog para alertar o usuário sobre a perda de dados.
- * - Adicionado espaçamento no topo para corrigir sobreposição do título no modo mobile.
- * - Implementada a funcionalidade completa de edição de categorias.
- * - Adicionada a funcionalidade de CRUD para Tipos de Pagamento.
- * - O seletor de cores foi trocado por um input do tipo 'color' (RGB).
- */
 import {
   Card,
   CardContent,

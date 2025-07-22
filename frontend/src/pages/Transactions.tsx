@@ -1,10 +1,3 @@
-/*
- * Reorganizada a UI para melhor usabilidade.
- * - A exibição de transações recorrentes futuras foi removida desta página.
- * - O badge da categoria agora usa a cor definida pelo usuário como fundo.
- * - Adicionado suporte para 'paymentType' (tipo de pagamento).
- * - Otimizado o layout dos filtros para melhor responsividade.
- */
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

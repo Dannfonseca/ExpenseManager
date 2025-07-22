@@ -1,10 +1,3 @@
-/*
- * Implementada a responsividade para a inserção em massa.
- * - Em telas maiores (md+), uma tabela é exibida.
- * - Em telas menores, a visualização muda para uma lista de cards,
- * garantindo a usabilidade e um layout harmônico no mobile.
- * - Todas as funcionalidades são mantidas em ambas as visualizações.
- */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";

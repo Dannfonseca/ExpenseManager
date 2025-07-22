@@ -15,8 +15,9 @@ import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Users from "./pages/Users";
 import RecurringTransactions from "./pages/RecurringTransactions";
-import Guide from "./pages/Guide"; 
-import AddTransactionsSheet from "./pages/AddTransactionsSheet"; // Nova página
+import Guide from "./pages/Guide";
+import AddTransactionsSheet from "./pages/AddTransactionsSheet";
+import Calculator from "./pages/Calculator"; // Nova página
 
 const queryClient = new QueryClient();
 
@@ -35,8 +36,9 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/add-transaction" element={<AddTransaction />} />
-              <Route path="/add-transactions-sheet" element={<AddTransactionsSheet />} /> {/* Nova rota */}
+              <Route path="/add-transactions-sheet" element={<AddTransactionsSheet />} />
               <Route path="/recurring" element={<RecurringTransactions />} />
+              <Route path="/calculator" element={<Calculator />} /> {/* Nova rota */}
               <Route path="/settings" element={<Settings />} />
               <Route path="/guide" element={<Guide />} />
               <Route path="/dev-logs" element={<DeveloperLogs />} />

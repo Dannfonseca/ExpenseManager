@@ -1,9 +1,3 @@
-/*
- * Guia de Uso atualizado para incluir as novas funcionalidades.
- * - Detalhada a funcionalidade de "Previsão" no Dashboard.
- * - Adicionada uma nova seção para explicar o gerenciamento de "Tipos de Pagamento".
- * - Corrigida a importação do ícone 'Palette' que estava faltando.
- */
 import {
   Accordion,
   AccordionContent,

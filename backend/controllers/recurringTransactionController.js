@@ -50,10 +50,6 @@ const recurringTransactionSchema = z
     }
   });
 
-
-// @desc    Lista todas as transações recorrentes
-// @route   GET /api/recurring-transactions
-// @access  Private
 const getRecurringTransactions = asyncHandler(async (req, res) => {
   logger.logEvent('INFO', `User ${req.user._id} fetching recurring transactions.`);
   const recurringTransactions = await RecurringTransaction.find({ user: req.user._id })
@@ -63,9 +59,6 @@ const getRecurringTransactions = asyncHandler(async (req, res) => {
   res.json(recurringTransactions);
 });
 
-// @desc    Cria uma nova transação recorrente
-// @route   POST /api/recurring-transactions
-// @access  Private
 const createRecurringTransaction = asyncHandler(async (req, res) => {
   const parsedBody = recurringTransactionSchema.parse(req.body);
   const { type, description, amount, startDate, endDate, frequency, category, paymentType, notes } = parsedBody;
@@ -93,9 +86,6 @@ const createRecurringTransaction = asyncHandler(async (req, res) => {
   res.status(201).json(createdRecurringTransaction);
 });
 
-// @desc    Atualiza uma transação recorrente
-// @route   PUT /api/recurring-transactions/:id
-// @access  Private
 const updateRecurringTransaction = asyncHandler(async (req, res) => {
   const parsedBody = recurringTransactionSchema.parse(req.body);
   const { type, description, amount, startDate, endDate, frequency, category, paymentType, notes } = parsedBody;
@@ -124,9 +114,6 @@ const updateRecurringTransaction = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Deleta uma transação recorrente
-// @route   DELETE /api/recurring-transactions/:id
-// @access  Private
 const deleteRecurringTransaction = asyncHandler(async (req, res) => {
     const transactionId = req.params.id;
     const transaction = await RecurringTransaction.findById(transactionId);

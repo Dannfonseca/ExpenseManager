@@ -1,12 +1,6 @@
-/*
- * Adicionada a exclusão em cascata de despesas ao deletar uma categoria.
- * - A função deleteCategory agora remove todas as despesas associadas
- * antes de deletar a própria categoria, evitando dados órfãos.
- * - Corrigidas as chamadas de logger para usar o novo método logEvent.
- */
 import asyncHandler from 'express-async-handler';
 import Category from '../models/Category.js';
-import Expense from '../models/Transaction.js'; // Importar o modelo Expense
+import Expense from '../models/Transaction.js';
 import { z } from 'zod';
 import logger from '../utils/logger.js';
 
@@ -15,9 +9,6 @@ const categorySchema = z.object({
     color: z.string().optional(),
 });
 
-// @desc    Lista todas as categorias do usuário
-// @route   GET /api/categories
-// @access  Private
 const getCategories = asyncHandler(async (req, res) => {
   logger.logEvent('INFO', `User ${req.user._id} fetching categories.`);
   const categories = await Category.find({ user: req.user._id });
@@ -25,9 +16,6 @@ const getCategories = asyncHandler(async (req, res) => {
   res.json(categories);
 });
 
-// @desc    Cria uma nova categoria
-// @route   POST /api/categories
-// @access  Private
 const createCategory = asyncHandler(async (req, res) => {
   const { name, color } = categorySchema.parse(req.body);
 
@@ -43,9 +31,6 @@ const createCategory = asyncHandler(async (req, res) => {
   res.status(201).json(createdCategory);
 });
 
-// @desc    Atualiza uma categoria
-// @route   PUT /api/categories/:id
-// @access  Private
 const updateCategory = asyncHandler(async (req, res) => {
     const { name, color } = categorySchema.parse(req.body);
     const categoryId = req.params.id;
@@ -67,9 +52,6 @@ const updateCategory = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Deleta uma categoria e todas as despesas associadas
-// @route   DELETE /api/categories/:id
-// @access  Private
 const deleteCategory = asyncHandler(async (req, res) => {
     const categoryId = req.params.id;
     logger.logEvent('INFO', `User ${req.user._id} attempting to delete category ${categoryId}.`);

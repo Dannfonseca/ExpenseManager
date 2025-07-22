@@ -1,11 +1,3 @@
-/*
- * Alterada a lógica de verificação de ambiente para ser mais robusta.
- * - O servidor agora serve os arquivos do frontend por padrão.
- * - A mensagem "API em modo de desenvolvimento" só aparecerá se NODE_ENV
- * for explicitamente definido como 'development', corrigindo o problema no deploy.
- * - Adicionada rota para transações recorrentes e jobs externos.
- * - Adicionada rota para tipos de pagamento.
- */
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';

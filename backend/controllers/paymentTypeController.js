@@ -1,7 +1,3 @@
-/*
- * Controller para gerenciar as operações de CRUD para Tipos de Pagamento.
- * - Adicionada a desvinculação de transações ao deletar um tipo de pagamento.
- */
 import asyncHandler from 'express-async-handler';
 import PaymentType from '../models/PaymentType.js';
 import Transaction from '../models/Transaction.js';
@@ -13,9 +9,6 @@ const paymentTypeSchema = z.object({
     name: z.string().min(1, 'O nome do tipo de pagamento é obrigatório.'),
 });
 
-// @desc    Lista todos os tipos de pagamento do usuário
-// @route   GET /api/payment-types
-// @access  Private
 const getPaymentTypes = asyncHandler(async (req, res) => {
   logger.logEvent('INFO', `User ${req.user._id} fetching payment types.`);
   const paymentTypes = await PaymentType.find({ user: req.user._id });
@@ -23,9 +16,6 @@ const getPaymentTypes = asyncHandler(async (req, res) => {
   res.json(paymentTypes);
 });
 
-// @desc    Cria um novo tipo de pagamento
-// @route   POST /api/payment-types
-// @access  Private
 const createPaymentType = asyncHandler(async (req, res) => {
   const { name } = paymentTypeSchema.parse(req.body);
 
@@ -40,9 +30,6 @@ const createPaymentType = asyncHandler(async (req, res) => {
   res.status(201).json(createdPaymentType);
 });
 
-// @desc    Atualiza um tipo de pagamento
-// @route   PUT /api/payment-types/:id
-// @access  Private
 const updatePaymentType = asyncHandler(async (req, res) => {
     const { name } = paymentTypeSchema.parse(req.body);
     const paymentTypeId = req.params.id;
@@ -63,9 +50,6 @@ const updatePaymentType = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Deleta um tipo de pagamento
-// @route   DELETE /api/payment-types/:id
-// @access  Private
 const deletePaymentType = asyncHandler(async (req, res) => {
     const paymentTypeId = req.params.id;
     logger.logEvent('INFO', `User ${req.user._id} attempting to delete payment type ${paymentTypeId}.`);

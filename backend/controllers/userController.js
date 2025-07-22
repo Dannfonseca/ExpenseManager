@@ -1,12 +1,3 @@
-/*
- * Adicionadas funções e validações para gerenciamento de usuários por administradores.
- * - createUser: Permite que um admin crie um novo usuário com email, senha e role.
- * - updateUserByAdmin: Permite que um admin atualize o email e a role de um usuário.
- * - deleteUser: Permite que um admin remova um usuário do sistema.
- * - getUserById: Obtém os dados de um usuário específico para edição.
- * - Zod schemas (createUserSchema, adminUpdateUserSchema) foram adicionados para validar os dados de entrada.
- * - Logs de rotina removidos, mantendo apenas logs de eventos de AUTH.
- */
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import { z } from 'zod';

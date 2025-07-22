@@ -1,11 +1,3 @@
-/*
- * Implementada a responsividade para a lista de usuários.
- * - Em telas maiores (md+), uma tabela é exibida.
- * - Em telas menores, a visualização muda para uma lista de cards,
- * garantindo a usabilidade e evitando quebra de layout no mobile.
- * - Todas as funcionalidades (editar, excluir) estão disponíveis em ambas as visualizações.
- * - Adicionado espaçamento no topo para corrigir sobreposição do título no modo mobile.
- */
 import { useState, useEffect } from "react";
 import {
   Card,

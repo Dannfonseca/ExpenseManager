@@ -1,13 +1,3 @@
-/*
- * Adicionado controle de data independente para os cards de resumo.
- * - Novos estados para gerenciar os dados dos cards e dos gráficos.
- * - Adicionada a funcionalidade de "Previsão" para gastos e receitas recorrentes.
- * - Os gráficos de "Análise Gráfica" e "Top Categorias" mantêm seus próprios controles de data.
- * - Desabilitada a exibição dos gráficos e top categorias no modo "Previsão".
- * - Adicionada cor customizada para a categoria "Recorrências" no gráfico de pizza.
- * - Gráfico de pizza e lista de top categorias agora usam as cores dinâmicas da API.
- * - Melhorada a estilização do card "Top Categorias" para melhor espaçamento.
- */
 import {
   Card,
   CardContent,

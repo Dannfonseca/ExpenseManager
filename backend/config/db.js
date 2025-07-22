@@ -1,8 +1,3 @@
-/*
- * Corrigida a chamada da função de log.
- * - Substituído o antigo logger.log() pelo novo logger.logEvent('INFO', ...),
- * alinhando o arquivo com o novo sistema de logs e corrigindo o erro de deploy.
- */
 import mongoose from 'mongoose';
 import logger from '../utils/logger.js';
 

@@ -1,9 +1,3 @@
-/*
- * Corrigido o link de navegação para a página de Transações.
- * O nome exibido no menu agora é "Transações" e o link aponta para "/transactions".
- * Adicionada chamada à API de logout para registrar o evento no backend.
- * Adicionado link para a página de Recorrências e Guia de Uso.
- */
 import { NavLink, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,7 +12,8 @@ import {
   LogOut,
   Users,
   Repeat,
-  BookOpen, // Ícone importado
+  BookOpen,
+  Calculator,
 } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "./ThemeToggle";
@@ -29,8 +24,9 @@ const baseNavigation = [
   { name: "Transações", href: "/transactions", icon: Receipt },
   { name: "Recorrências", href: "/recurring", icon: Repeat },
   { name: "Adicionar", href: "/add-transaction", icon: Plus },
+  { name: "Calculadora", href: "/calculator", icon: Calculator },
   { name: "Configurações", href: "/settings", icon: Settings },
-  { name: "Guia de Uso", href: "/guide", icon: BookOpen }, // Nova página
+  { name: "Guia de Uso", href: "/guide", icon: BookOpen },
 ];
 
 const adminNavigation = [
@@ -43,7 +39,6 @@ const Layout = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // A verificação de admin agora é feita diretamente para garantir atualização constante
   const userInfoString = localStorage.getItem("userInfo");
   const userInfo = userInfoString ? JSON.parse(userInfoString) : null;
   const isAdmin = userInfo?.role === "admin";

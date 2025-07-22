@@ -5,9 +5,6 @@ import { protectJob } from '../middlewares/jobAuthMiddleware.js';
 
 const router = express.Router();
 
-// @desc    Aciona o job de processamento de transações recorrentes
-// @route   POST /api/jobs/trigger
-// @access  Private (via Chave Secreta)
 router.post('/trigger', protectJob, asyncHandler(async (req, res) => {
     try {
         const result = await processJobs();

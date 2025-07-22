@@ -1,8 +1,3 @@
-/*
- * Adicionada uma nova rota para criação de transações em massa.
- * - A rota '/bulk' permite o envio de um array de transações,
- * facilitando a inserção de múltiplos dados de uma vez.
- */
 import express from 'express';
 const router = express.Router();
 import {

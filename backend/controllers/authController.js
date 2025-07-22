@@ -14,9 +14,6 @@ const loginSchema = z.object({
     password: z.string().min(1, 'A senha é obrigatória.'),
 });
 
-// @desc    Registra um novo usuário
-// @route   POST /api/auth/register
-// @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { email, password } = registerSchema.parse(req.body);
 
@@ -46,9 +43,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Autentica usuário & obtém token
-// @route   POST /api/auth/login
-// @access  Public
+
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = loginSchema.parse(req.body);
 
@@ -68,9 +63,7 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Realiza o logout do usuário
-// @route   POST /api/auth/logout
-// @access  Private
+
 const logoutUser = asyncHandler(async (req, res) => {
   logger.logEvent('AUTH', `Usuário ${req.user.email} (ID: ${req.user._id}) saiu do sistema.`);
   res.status(200).json({ message: 'Logout realizado com sucesso.' });
