@@ -1,8 +1,16 @@
+/*
+ * Página da Calculadora Financeira.
+ * - Adicionada seleção de Mês e Ano na aba Padrão para buscar e calcular dados de períodos específicos.
+ * - A busca de dados agora é dinâmica, reagindo às mudanças nos seletores de data.
+ * - Adicionada estrutura de Abas para organizar as diferentes calculadoras: Padrão, Metas (Juros Compostos), Financiamento e Histórico.
+ * - Adicionado um card de instruções detalhado abaixo da calculadora principal.
+ */
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -32,10 +40,30 @@ interface SummaryData {
     transactions: Transaction[];
 }
 
+const months = [
+    { value: 1, label: 'Janeiro' }, { value: 2, label: 'Fevereiro' },
+    { value: 3, label: 'Março' }, { value: 4, label: 'Abril' },
+    { value: 5, label: 'Maio' }, { value: 6, label: 'Junho' },
+    { value: 7, label: 'Julho' }, { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Setembro' }, { value: 10, label: 'Outubro' },
+    { value: 11, label: 'Novembro' }, { value: 12, label: 'Dezembro' },
+];
+
+const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear; i >= 2020; i--) {
+        years.push({ value: i, label: String(i) });
+    }
+    return years;
+};
+
 const Calculator = () => {
     // Estados gerais
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [loadingSummary, setLoadingSummary] = useState(true);
+    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
     // Estados da Calculadora Padrão
     const [display, setDisplay] = useState("0");
@@ -53,37 +81,37 @@ const Calculator = () => {
     const [loanState, setLoanState] = useState({ amount: '', rate: '', months: '' });
     const [loanResult, setLoanResult] = useState<{ monthlyPayment: number; totalPaid: number; totalInterest: number} | null>(null);
 
+
     useEffect(() => {
         const fetchSummaryData = async () => {
-          try {
-            const userInfoString = localStorage.getItem("userInfo");
-            if (!userInfoString) throw new Error("Usuário não autenticado.");
-            const { token } = JSON.parse(userInfoString);
-        
-            const currentMonth = new Date().getMonth() + 1;
-            const currentYear = new Date().getFullYear();
-        
-            const response = await fetch(`/api/transactions?year=${currentYear}&month=${currentMonth}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-        
-            if (!response.ok) throw new Error("Falha ao buscar dados de resumo.");
-        
-            const data = await response.json();
-            setSummaryData({
-              totalIncome: data.monthTotals.income,
-              totalExpenses: data.monthTotals.expenses,
-              balance: data.monthTotals.balance,
-              transactions: data.transactions,
-            });
-          } catch (error: any) {
-            toast.error(error.message);
-          } finally {
-            setLoadingSummary(false);
-          }
+            setLoadingSummary(true);
+            try {
+                const userInfoString = localStorage.getItem("userInfo");
+                if (!userInfoString) throw new Error("Usuário não autenticado.");
+                const { token } = JSON.parse(userInfoString);
+            
+                const response = await fetch(`/api/transactions?year=${selectedYear}&month=${selectedMonth}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            
+                if (!response.ok) throw new Error("Falha ao buscar dados do período.");
+            
+                const data = await response.json();
+                setSummaryData({
+                    totalIncome: data.monthTotals.income,
+                    totalExpenses: data.monthTotals.expenses,
+                    balance: data.monthTotals.balance,
+                    transactions: data.transactions,
+                });
+            } catch (error: any) {
+                toast.error(error.message);
+                setSummaryData(null);
+            } finally {
+                setLoadingSummary(false);
+            }
         };
         fetchSummaryData();
-    }, []);
+    }, [selectedMonth, selectedYear]);
     
     const handleValueInsert = (valueStr: string) => {
         if (display === "0" || display === "Erro" || expression === "") {
@@ -209,8 +237,8 @@ const Calculator = () => {
             return;
         }
 
-        const r = r_anual / 12; // taxa mensal
-        const n = t * 12; // número de meses
+        const r = r_anual / 12;
+        const n = t * 12;
         
         const futureValue = P * Math.pow(1 + r, n) + PMT * ( (Math.pow(1 + r, n) - 1) / r );
         const totalInvested = P + (PMT * n);
@@ -229,7 +257,7 @@ const Calculator = () => {
             return;
         }
 
-        const r = r_anual / 12; // taxa mensal
+        const r = r_anual / 12;
         const monthlyPayment = P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
         const totalPaid = monthlyPayment * n;
         const totalInterest = totalPaid - P;
@@ -241,6 +269,7 @@ const Calculator = () => {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
+    const yearOptions = getYearOptions();
     const buttons = [
         "sin", "cos", "tan", "AC", "C",
         "log", "(", ")", "^", "/",
@@ -277,6 +306,20 @@ const Calculator = () => {
                             </TabsList>
                             
                             <TabsContent value="padrao" className="mt-4">
+                                <div className="grid grid-cols-2 gap-2 mb-4">
+                                    <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                                        <SelectTrigger><SelectValue placeholder="Mês" /></SelectTrigger>
+                                        <SelectContent>
+                                            {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                                        <SelectTrigger><SelectValue placeholder="Ano" /></SelectTrigger>
+                                        <SelectContent>
+                                            {yearOptions.map(y => <SelectItem key={y.value} value={String(y.value)}>{y.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="bg-muted text-right p-4 rounded-lg mb-4 text-3xl font-mono break-all min-h-[64px] flex items-center justify-end">
                                     {display}
                                 </div>
@@ -285,20 +328,20 @@ const Calculator = () => {
                                         <Button variant="outline" onClick={() => openSelectionDialog('income')} disabled={loadingSummary} className="flex-col h-auto">
                                             <TrendingUp className="h-4 w-4 mb-1 text-green-500"/>
                                             <span className="text-xs">Receitas</span>
-                                            <span className="text-xs font-bold">{summaryData?.totalIncome.toFixed(2)}</span>
+                                            <span className="text-xs font-bold">{summaryData ? formatCurrency(summaryData.totalIncome) : '...'}</span>
                                         </Button>
                                     </DialogTrigger>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" onClick={() => openSelectionDialog('expense')} disabled={loadingSummary} className="flex-col h-auto">
                                             <TrendingDown className="h-4 w-4 mb-1 text-red-500"/>
                                             <span className="text-xs">Despesas</span>
-                                            <span className="text-xs font-bold">{summaryData?.totalExpenses.toFixed(2)}</span>
+                                            <span className="text-xs font-bold">{summaryData ? formatCurrency(summaryData.totalExpenses) : '...'}</span>
                                         </Button>
                                     </DialogTrigger>
                                     <Button variant="outline" onClick={() => handleButtonClick('Saldo')} disabled={loadingSummary} className="flex-col h-auto">
                                         <Scale className="h-4 w-4 mb-1"/>
                                         <span className="text-xs">Saldo</span>
-                                        <span className="text-xs font-bold">{summaryData?.balance.toFixed(2)}</span>
+                                        <span className="text-xs font-bold">{summaryData ? formatCurrency(summaryData.balance) : '...'}</span>
                                     </Button>
                                 </div>
                                 <div className="grid grid-cols-5 gap-2">
@@ -432,9 +475,10 @@ const Calculator = () => {
                     <div>
                         <h4 className="font-semibold text-card-foreground mb-1">Aba Padrão</h4>
                         <ul className="list-disc pl-5 space-y-1">
+                            <li>Selecione o <strong>Mês</strong> e <strong>Ano</strong> que deseja analisar.</li>
                             <li>Realize cálculos científicos e de porcentagem (Ex: <strong>500 + 15%</strong>).</li>
-                            <li>Clique em <strong>Receitas</strong> ou <strong>Despesas</strong> para somar transações específicas do mês.</li>
-                            <li>O botão <strong>Saldo</strong> insere seu saldo atual no visor.</li>
+                            <li>Clique em <strong>Receitas</strong> ou <strong>Despesas</strong> para somar transações específicas do período selecionado.</li>
+                            <li>O botão <strong>Saldo</strong> insere o saldo do período selecionado no visor.</li>
                         </ul>
                     </div>
                     <div>
