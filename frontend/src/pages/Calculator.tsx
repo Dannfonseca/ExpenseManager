@@ -1,10 +1,3 @@
-/*
- * Página da Calculadora Financeira.
- * - Adicionada seleção de Mês e Ano na aba Padrão para buscar e calcular dados de períodos específicos.
- * - A busca de dados agora é dinâmica, reagindo às mudanças nos seletores de data.
- * - Adicionada estrutura de Abas para organizar as diferentes calculadoras: Padrão, Metas (Juros Compostos), Financiamento e Histórico.
- * - Adicionado um card de instruções detalhado abaixo da calculadora principal.
- */
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +24,7 @@ interface Transaction {
     description: string;
     amount: number;
     type: 'income' | 'expense';
+    date: string; // Adicionado campo de data
 }
 
 interface SummaryData {
@@ -269,6 +263,10 @@ const Calculator = () => {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+    }
+
     const yearOptions = getYearOptions();
     const buttons = [
         "sin", "cos", "tan", "AC", "C",
@@ -446,16 +444,17 @@ const Calculator = () => {
                             <div key={tx._id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted">
                                 <Checkbox id={tx._id} checked={selectedTransactions.includes(tx._id)} onCheckedChange={checked => {setSelectedTransactions(prev => checked ? [...prev, tx._id] : prev.filter(id => id !== tx._id)); }} />
                                 <label htmlFor={tx._id} className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    <span className="font-mono text-muted-foreground mr-2">{formatDate(tx.date)}</span>
                                     {tx.description}
                                 </label>
-                                <span className="text-sm font-mono">{tx.amount.toFixed(2)}</span>
+                                <span className="text-sm font-mono">{formatCurrency(tx.amount)}</span>
                             </div>
                         ))}
                         </div>
                     </ScrollArea>
                     <DialogFooter className="sm:justify-between">
                         <div className="text-sm font-bold">
-                            Total Selecionado: R$ {totalSelectedValue.toFixed(2)}
+                            Total Selecionado: {formatCurrency(totalSelectedValue)}
                         </div>
                         <div>
                             <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
