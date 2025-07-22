@@ -5,8 +5,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, AlertCircle, Repeat, CreditCard, CalendarClock, Palette } from "lucide-react"; 
+import { BookOpen, AlertCircle, Repeat, CreditCard, CalendarClock, Palette, Calculator, HelpCircle, MessageSquare, Instagram } from "lucide-react";
 
 const Guide = () => {
   return (
@@ -59,13 +60,13 @@ const Guide = () => {
                   </li>
                 </ul>
                 <div className="p-3 mt-2 bg-muted rounded-md flex items-start">
-                    <CalendarClock className="h-5 w-5 mr-3 mt-0.5 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Modo Previsão</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Ative a chave <strong>"Previsão"</strong> para ver uma projeção dos seus saldos futuros. O sistema calculará automaticamente suas receitas e despesas recorrentes para qualquer mês futuro, ajudando você a se planejar financeiramente.
-                        </p>
-                    </div>
+                  <CalendarClock className="h-5 w-5 mr-3 mt-0.5 text-primary" />
+                  <div>
+                    <h4 className="font-semibold">Modo Previsão</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Ative a chave <strong>"Previsão"</strong> para ver uma projeção dos seus saldos futuros. O sistema calculará automaticamente suas receitas e despesas recorrentes para qualquer mês futuro, ajudando você a se planejar financeiramente.
+                    </p>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -94,7 +95,7 @@ const Guide = () => {
                     <strong>Transação Recorrente:</strong> Ative esta opção para
                     lançamentos que se repetem, como salários ou aluguéis.
                   </li>
-                   <li>
+                  <li>
                     <strong>Tipo de Pagamento:</strong> (Opcional) Especifique como a despesa foi paga (ex: Cartão de Crédito, Pix, Dinheiro) para uma análise mais detalhada. Você pode criar seus próprios tipos de pagamento na tela de Configurações.
                   </li>
                   <li>
@@ -126,11 +127,11 @@ const Guide = () => {
                   </li>
                 </ul>
                 <div className="p-3 mt-2 bg-muted rounded-md flex items-start">
-                    <AlertCircle className="h-5 w-5 mr-3 mt-0.5 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Dica de mestre</h4>
-                        <p className="text-sm text-muted-foreground">Na página de Transações, as recorrências que ainda vão acontecer no mês selecionado aparecem com um design tracejado e um ícone <Repeat className="inline h-4 w-4" /> para fácil identificação.</p>
-                    </div>
+                  <AlertCircle className="h-5 w-5 mr-3 mt-0.5 text-primary" />
+                  <div>
+                    <h4 className="font-semibold">Dica de mestre</h4>
+                    <p className="text-sm text-muted-foreground">Na página de Transações, as recorrências que ainda vão acontecer no mês selecionado aparecem com um design tracejado e um ícone <Repeat className="inline h-4 w-4" /> para fácil identificação.</p>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -162,7 +163,48 @@ const Guide = () => {
                  </div>
               </AccordionContent>
             </AccordionItem>
+
+            <AccordionItem value="item-5">
+                <AccordionTrigger>Calculadora Financeira</AccordionTrigger>
+                <AccordionContent className="space-y-3">
+                    <p>
+                        Uma suíte completa de ferramentas para o seu planejamento. Acesse através do ícone <Calculator className="inline h-4 w-4" /> no menu.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2">
+                        <li><strong>Aba Padrão:</strong> Use para cálculos rápidos, científicos e de porcentagem. Selecione um mês e ano para usar os totais de Receita, Despesa e Saldo daquele período em suas contas.</li>
+                        <li><strong>Aba Metas:</strong> Simule o crescimento de seus investimentos com juros compostos. Informe um valor inicial, aportes mensais, a taxa de juros e o período para ver a projeção do seu patrimônio.</li>
+                        <li><strong>Aba Financiamento:</strong> Calcule o valor da parcela de um empréstimo ou financiamento. Basta inserir o valor total, a taxa de juros e o número de parcelas.</li>
+                        <li><strong>Aba Histórico:</strong> Todos os cálculos feitos na aba "Padrão" ficam salvos aqui para consulta ou reutilização.</li>
+                    </ul>
+                </AccordionContent>
+            </AccordionItem>
+
           </Accordion>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center">
+                <HelpCircle className="mr-2 h-5 w-5" /> FAQ e Suporte
+            </CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+                Se você encontrou um problema, tem alguma dúvida que não foi respondida neste guia ou gostaria de dar um feedback, sua opinião é muito importante! Entre em contato através de um dos canais abaixo.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+                <a href="https://wa.me/5521989324855" target="_blank" rel="noopener noreferrer" className="w-full">
+                    <Button variant="outline" className="w-full">
+                        <MessageSquare className="mr-2 h-4 w-4"/> WhatsApp
+                    </Button>
+                </a>
+                <a href="https://www.instagram.com/codantalker" target="_blank" rel="noopener noreferrer" className="w-full">
+                    <Button variant="outline" className="w-full">
+                        <Instagram className="mr-2 h-4 w-4"/> Instagram
+                    </Button>
+                </a>
+            </div>
         </CardContent>
       </Card>
     </div>
