@@ -3,6 +3,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +14,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -27,9 +29,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Palette, CreditCard } from "lucide-react";
+import { Plus, Edit, Trash2, Palette, CreditCard, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Category {
   _id: string;
@@ -43,6 +46,7 @@ interface PaymentType {
 }
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   
@@ -59,17 +63,36 @@ const Settings = () => {
   const [editingPaymentType, setEditingPaymentType] = useState<PaymentType | null>(null);
   const [editPaymentTypeName, setEditPaymentTypeName] = useState("");
 
-  const getToken = () => {
-    const userInfoString = localStorage.getItem("userInfo");
-    if (!userInfoString) throw new Error("Usuário não autenticado.");
-    return JSON.parse(userInfoString).token;
-  }
+  const [userName, setUserName] = useState("");
+  const [isProfileEditDialogOpen, setIsProfileEditDialogOpen] = useState(false);
+  const [currentUserInfo, setCurrentUserInfo] = useState<{name: string} | null>(null);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+        try {
+            const response = await fetch('/api/user/profile', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                setUserName(data.name || "");
+                setCurrentUserInfo(data);
+            } else {
+              throw new Error("Sessão inválida. Por favor, faça login novamente.");
+            }
+        } catch (error: any) {
+            toast.error(error.message);
+            navigate('/login');
+        }
+    };
+
+    fetchInitialData();
+    fetchCategories();
+    fetchPaymentTypes();
+  }, [navigate]);
 
   const fetchCategories = async () => {
     try {
-      const token = getToken();
       const response = await fetch("/api/categories", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Falha ao buscar categorias");
       const data = await response.json();
@@ -81,9 +104,8 @@ const Settings = () => {
 
   const fetchPaymentTypes = async () => {
     try {
-      const token = getToken();
       const response = await fetch("/api/payment-types", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Falha ao buscar tipos de pagamento");
       const data = await response.json();
@@ -93,24 +115,16 @@ const Settings = () => {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-    fetchPaymentTypes();
-  }, []);
-
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
       toast.error("O nome da categoria não pode ser vazio.");
       return;
     }
     try {
-      const token = getToken();
       const response = await fetch("/api/categories", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ name: newCategoryName, color: newCategoryColor }),
       });
       if (!response.ok) throw new Error("Falha ao adicionar categoria.");
@@ -128,13 +142,10 @@ const Settings = () => {
       return;
     }
     try {
-      const token = getToken();
       const response = await fetch("/api/payment-types", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ name: newPaymentTypeName }),
       });
       if (!response.ok) throw new Error("Falha ao adicionar tipo de pagamento.");
@@ -146,36 +157,17 @@ const Settings = () => {
     }
   };
 
-  const handleEditCategoryClick = (category: Category) => {
-    setEditingCategory(category);
-    setEditCategoryName(category.name);
-    setEditCategoryColor(category.color || "#000000");
-    setIsCategoryEditDialogOpen(true);
-  }
-
-  const handleEditPaymentTypeClick = (pt: PaymentType) => {
-    setEditingPaymentType(pt);
-    setEditPaymentTypeName(pt.name);
-    setIsPaymentTypeEditDialogOpen(true);
-  }
-
   const handleUpdateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCategory) return;
     try {
-        const token = getToken();
         const response = await fetch(`/api/categories/${editingCategory._id}`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json" },
+            credentials: 'include',
             body: JSON.stringify({ name: editCategoryName, color: editCategoryColor }),
         });
-
-        if (!response.ok) {
-            throw new Error("Falha ao atualizar a categoria.");
-        }
+        if (!response.ok) throw new Error("Falha ao atualizar a categoria.");
         toast.success("Categoria atualizada com sucesso!");
         setIsCategoryEditDialogOpen(false);
         setEditingCategory(null);
@@ -189,19 +181,13 @@ const Settings = () => {
     e.preventDefault();
     if (!editingPaymentType) return;
     try {
-        const token = getToken();
         const response = await fetch(`/api/payment-types/${editingPaymentType._id}`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json" },
+            credentials: 'include',
             body: JSON.stringify({ name: editPaymentTypeName }),
         });
-
-        if (!response.ok) {
-            throw new Error("Falha ao atualizar o tipo de pagamento.");
-        }
+        if (!response.ok) throw new Error("Falha ao atualizar o tipo de pagamento.");
         toast.success("Tipo de pagamento atualizado com sucesso!");
         setIsPaymentTypeEditDialogOpen(false);
         setEditingPaymentType(null);
@@ -211,13 +197,11 @@ const Settings = () => {
     }
   };
 
-
   const handleDeleteCategory = async (id: string) => {
     try {
-      const token = getToken();
       const response = await fetch(`/api/categories/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Falha ao remover categoria.");
       toast.success("Categoria removida com sucesso!");
@@ -229,10 +213,9 @@ const Settings = () => {
 
   const handleDeletePaymentType = async (id: string) => {
     try {
-      const token = getToken();
       const response = await fetch(`/api/payment-types/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Falha ao remover tipo de pagamento.");
       toast.success("Tipo de pagamento removido com sucesso!");
@@ -240,6 +223,56 @@ const Settings = () => {
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+        const response = await fetch('/api/user/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name: userName })
+        });
+        if (!response.ok) throw new Error('Falha ao atualizar o nome.');
+        
+        const updatedUser = await response.json();
+        setCurrentUserInfo(updatedUser);
+        setUserName(updatedUser.name);
+        
+        toast.success('Nome atualizado com sucesso!');
+        setIsProfileEditDialogOpen(false);
+    } catch (error: any) {
+        toast.error(error.message);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+        const response = await fetch('/api/user/profile', {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Falha ao excluir a conta.');
+        
+        toast.success('Conta excluída com sucesso.');
+        navigate('/login');
+    } catch (error: any) {
+        toast.error(error.message);
+    }
+  };
+
+  const handleEditCategoryClick = (category: Category) => {
+    setEditingCategory(category);
+    setEditCategoryName(category.name);
+    setEditCategoryColor(category.color || "#000000");
+    setIsCategoryEditDialogOpen(true);
+  };
+
+  const handleEditPaymentTypeClick = (pt: PaymentType) => {
+    setEditingPaymentType(pt);
+    setEditPaymentTypeName(pt.name);
+    setIsPaymentTypeEditDialogOpen(true);
   };
 
   return (
@@ -268,10 +301,7 @@ const Settings = () => {
                   className="flex-1"
                 />
                 <Input type="color" value={newCategoryColor} onChange={e => setNewCategoryColor(e.target.value)} className="w-12 h-10 p-1" />
-                <Button
-                  size="sm"
-                  onClick={handleAddCategory}
-                >
+                <Button size="sm" onClick={handleAddCategory}>
                   <Plus className="mr-2 h-4 w-4" />
                   Adicionar
                 </Button>
@@ -316,10 +346,7 @@ const Settings = () => {
                   onChange={(e) => setNewPaymentTypeName(e.target.value)}
                   className="flex-1"
                 />
-                <Button
-                  size="sm"
-                  onClick={handleAddPaymentType}
-                >
+                <Button size="sm" onClick={handleAddPaymentType}>
                   <Plus className="mr-2 h-4 w-4" />
                   Adicionar
                 </Button>
@@ -343,6 +370,78 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+       <div className="space-y-2 pt-6">
+        <h2 className="text-2xl font-semibold tracking-tight">Minha Conta</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Dialog open={isProfileEditDialogOpen} onOpenChange={setIsProfileEditDialogOpen}>
+              <Card className="border-border bg-card">
+                  <CardHeader>
+                      <CardTitle className="text-card-foreground flex items-center">
+                          <UserIcon className="mr-2 h-5 w-5" />
+                          Perfil
+                      </CardTitle>
+                      <CardDescription>Gerencie as informações do seu perfil de usuário.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{currentUserInfo?.name}</p>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">Editar Nome</Button>
+                          </DialogTrigger>
+                      </div>
+                  </CardContent>
+              </Card>
+              <DialogContent>
+                  <DialogHeader><DialogTitle>Editar Nome</DialogTitle></DialogHeader>
+                  <form onSubmit={handleUpdateProfile}>
+                      <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                              <Label htmlFor="name-modal">Nome</Label>
+                              <Input id="name-modal" value={userName} onChange={(e) => setUserName(e.target.value)} />
+                          </div>
+                      </div>
+                      <DialogFooter>
+                          <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                          <Button type="submit">Salvar Alterações</Button>
+                      </DialogFooter>
+                  </form>
+              </DialogContent>
+            </Dialog>
+
+            <Card className="border-destructive bg-card">
+                <CardHeader>
+                    <CardTitle className="text-destructive flex items-center">
+                        <Trash2 className="mr-2 h-5 w-5" />
+                        Zona de Perigo
+                    </CardTitle>
+                    <CardDescription>Ações permanentes e destrutivas.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        A exclusão da sua conta é irreversível. Todos os seus dados, incluindo transações, categorias e configurações, serão permanentemente removidos.
+                    </p>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">Excluir Minha Conta</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente sua conta e removerá todos os seus dados de nossos servidores.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteAccount}>Sim, excluir minha conta</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+        </div>
       </div>
 
       <Dialog open={isCategoryEditDialogOpen} onOpenChange={setIsCategoryEditDialogOpen}>

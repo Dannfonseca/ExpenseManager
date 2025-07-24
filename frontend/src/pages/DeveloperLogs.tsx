@@ -4,53 +4,49 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Terminal } from "lucide-react";
 import { toast } from "sonner";
 
-const fetchLogs = async () => {
-  const userInfoString = localStorage.getItem("userInfo");
-  if (!userInfoString) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const userInfo = JSON.parse(userInfoString);
-  const token = userInfo?.token;
-
-  if (!token) {
-    throw new Error("Token de autenticação não encontrado.");
-  }
-
-  const response = await fetch("/api/logs", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error("Sessão expirada. Por favor, faça login novamente.");
-    }
-    throw new Error("Falha ao buscar logs do servidor.");
-  }
-  return response.json();
-};
-
 const DeveloperLogs = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch("/api/logs", {
+          credentials: 'include', // Usa cookie para autenticação
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Não autorizado para ver os logs.");
+          }
+          throw new Error("Falha ao buscar logs do servidor.");
+        }
+        return response.json();
+      } catch (err: any) {
+        // Apenas para o console, o toast já é mostrado no getLogs
+        console.error(err);
+        // Lança o erro novamente para ser pego pelo .catch do getLogs
+        throw err;
+      }
+    };
+
     const getLogs = () => {
       fetchLogs()
         .then(setLogs)
         .catch((err) => {
-          console.error(err);
           setError(err.message);
           toast.error(err.message);
+          // Para o intervalo se houver um erro de autorização
+          if (err.message.includes("Não autorizado")) {
+            clearInterval(intervalId);
+          }
         });
     };
 
-    getLogs();
-    const intervalId = setInterval(getLogs, 5000);
+    getLogs(); // Busca inicial
+    const intervalId = setInterval(getLogs, 5000); // Atualiza a cada 5 segundos
 
-    return () => clearInterval(intervalId);
+    return () => clearInterval(intervalId); // Limpa o intervalo ao desmontar o componente
   }, []);
 
   return (

@@ -14,8 +14,9 @@ import {
   Repeat,
   BookOpen,
   Calculator,
+  Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 import { toast } from "sonner";
 
@@ -38,34 +39,64 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const [userInfo, setUserInfo] = useState<{ name: string, email: string, role: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const userInfoString = localStorage.getItem("userInfo");
-  const userInfo = userInfoString ? JSON.parse(userInfoString) : null;
-  const isAdmin = userInfo?.role === "admin";
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      console.log("[Layout DEBUG] Iniciando verificação de sessão do usuário...");
+      try {
+        const response = await fetch('/api/user/profile', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+        });
+        
+        console.log("[Layout DEBUG] Resposta da API recebida:", response);
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log("[Layout DEBUG] DADOS DO USUÁRIO RECEBIDOS:", data);
+            setUserInfo(data);
+        } else {
+            console.error(`[Layout DEBUG] Falha ao buscar perfil. Status: ${response.status}`);
+            navigate('/login');
+        }
+      } catch (error) {
+        console.error("[Layout DEBUG] Erro de rede ao buscar perfil:", error);
+        toast.error("Erro de conexão. Não foi possível verificar sua sessão.");
+        navigate('/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUserProfile();
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
-      const token = userInfo?.token;
-      if (token) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Falha ao notificar o logout no backend:", error);
-    } finally {
-      localStorage.removeItem("userInfo");
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      setUserInfo(null);
       toast.success("Logout realizado com sucesso!");
       navigate("/login");
+    } catch (error) {
+      toast.error("Falha ao fazer logout.");
     }
   };
+  
+  const isAdmin = userInfo?.role === "admin";
+  console.log(`[Layout DEBUG] Verificando se é admin: ${isAdmin}. Role recebida: ${userInfo?.role}`);
 
-  const navigation = isAdmin
-    ? [...baseNavigation, ...adminNavigation]
-    : baseNavigation;
+  const navigation = isAdmin ? [...baseNavigation, ...adminNavigation] : baseNavigation;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,11 +110,7 @@ const Layout = () => {
             mobileMenuOpen ? "bg-card/50 backdrop-blur-sm" : "bg-card"
           )}
         >
-          {mobileMenuOpen ? (
-            <X className="h-4 w-4" />
-          ) : (
-            <Menu className="h-4 w-4" />
-          )}
+          {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </Button>
       </div>
 
@@ -120,18 +147,19 @@ const Layout = () => {
           </nav>
 
           <div className="p-4 border-t border-border">
-            <Button
-              variant="ghost"
-              className="w-full justify-start mb-2"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
+            <div className="mb-2">
+                <p className="text-sm font-semibold text-card-foreground truncate">{userInfo?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{userInfo?.email}</p>
+            </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground truncate">
-                {userInfo?.email}
-              </span>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sm"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </Button>
               <ThemeToggle />
             </div>
           </div>

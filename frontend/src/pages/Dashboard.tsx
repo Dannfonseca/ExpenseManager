@@ -103,7 +103,7 @@ const COLORS = [
   "#8884d8",
   "#82ca9d",
 ];
-const RECURRENCE_COLOR = "#FF6347"; // Cor para a categoria 'Recorrências'
+const RECURRENCE_COLOR = "#FF6347";
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: (i + 1).toString(),
@@ -113,20 +113,13 @@ const years = ["2022", "2023", "2024", "2025"];
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
-    null
-  );
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [activeChart, setActiveChart] = useState<"line" | "pie">("line");
   const navigate = useNavigate();
 
-  // State for Summary Cards and Forecast
-  const [summaryMonth, setSummaryMonth] = useState(
-    (new Date().getMonth() + 1).toString()
-  );
-  const [summaryYear, setSummaryYear] = useState(
-    new Date().getFullYear().toString()
-  );
-  const [isForecastView, setIsForecastView] = useState(false); // Controls the forecast view
+  const [summaryMonth, setSummaryMonth] = useState((new Date().getMonth() + 1).toString());
+  const [summaryYear, setSummaryYear] = useState(new Date().getFullYear().toString());
+  const [isForecastView, setIsForecastView] = useState(false);
   const [summaryData, setSummaryData] = useState<{
     totalIncome: number;
     totalExpenses: number;
@@ -134,44 +127,22 @@ const Dashboard = () => {
   } | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
 
-  // State for Line Chart
-  const [selectedMonth, setSelectedMonth] = useState(
-    (new Date().getMonth() + 1).toString()
-  );
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear().toString()
-  );
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [isComparing, setIsComparing] = useState(false);
-  const [compareMonth, setCompareMonth] = useState(
-    (((new Date().getMonth() + 12 - 1) % 12) + 1).toString()
-  );
-  const [compareYear, setCompareYear] = useState(
-    new Date().getFullYear().toString()
-  );
+  const [compareMonth, setCompareMonth] = useState((((new Date().getMonth() + 12 - 1) % 12) + 1).toString());
+  const [compareYear, setCompareYear] = useState(new Date().getFullYear().toString());
 
-  // State for Pie Chart
   const [piePopoverOpen, setPiePopoverOpen] = useState(false);
   const [pieSelectedMonths, setPieSelectedMonths] = useState<string[]>([
-    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`,
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2,"0")}`,
   ]);
-  const [pieChartData, setPieChartData] = useState<ComparisonPieData | null>(
-    null
-  );
-  const [pieChartDataType, setPieChartDataType] = useState<
-    "expenses" | "incomes"
-  >("expenses");
+  const [pieChartData, setPieChartData] = useState<ComparisonPieData | null>(null);
+  const [pieChartDataType, setPieChartDataType] = useState<"expenses" | "incomes">("expenses");
   const [loadingPie, setLoadingPie] = useState(false);
 
-  // State for Top Categories
-  const [categoriesMonth, setCategoriesMonth] = useState(
-    (new Date().getMonth() + 1).toString()
-  );
-  const [categoriesYear, setCategoriesYear] = useState(
-    new Date().getFullYear().toString()
-  );
+  const [categoriesMonth, setCategoriesMonth] = useState((new Date().getMonth() + 1).toString());
+  const [categoriesYear, setCategoriesYear] = useState(new Date().getFullYear().toString());
   const [topCategories, setTopCategories] = useState<TopCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
@@ -179,39 +150,24 @@ const Dashboard = () => {
     const monthsList = [];
     const currentDate = new Date();
     for (let i = 0; i < 12; i++) {
-      const date = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - i,
-        1
-      );
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       monthsList.push({
-        value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`,
-        label: `${date.toLocaleString("pt-BR", {
-          month: "long",
-          year: "numeric",
-        })}`,
+        value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,"0")}`,
+        label: `${date.toLocaleString("pt-BR", {month: "long", year: "numeric"})}`,
       });
     }
     return monthsList;
   }, []);
 
-  // Fetch data for Summary Cards or Forecast
   useEffect(() => {
     const fetchSummaryOrForecastData = async () => {
       setLoadingSummary(true);
       try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
-
         const endpoint = isForecastView ? 'forecast' : 'summary';
         const url = `/api/dashboard/${endpoint}/${summaryYear}/${summaryMonth}`;
         
         const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (!response.ok) throw new Error(`Falha ao buscar dados de ${isForecastView ? 'previsão' : 'resumo'}.`);
         const data = await response.json();
@@ -233,15 +189,12 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
         let url = `/api/dashboard/summary/${selectedYear}/${selectedMonth}`;
         if (isComparing && activeChart === "line") {
           url += `?compareYear=${compareYear}&compareMonth=${compareMonth}`;
         }
         const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (!response.ok)
           throw new Error("Falha ao buscar dados do dashboard.");
@@ -262,12 +215,9 @@ const Dashboard = () => {
     const fetchTopCategories = async () => {
       setLoadingCategories(true);
       try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
         const url = `/api/dashboard/summary/${categoriesYear}/${categoriesMonth}`;
         const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (!response.ok)
           throw new Error("Falha ao buscar dados das categorias.");
@@ -290,15 +240,10 @@ const Dashboard = () => {
       }
       setLoadingPie(true);
       try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
         const response = await fetch("/api/dashboard/category-breakdown", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: 'include',
           body: JSON.stringify({ months: pieSelectedMonths }),
         });
         if (!response.ok)
@@ -321,12 +266,8 @@ const Dashboard = () => {
     const maxDays = 31;
     return Array.from({ length: maxDays }, (_, i) => {
       const day = i + 1;
-      const currentDataPoint = dashboardData.dailyExpenses.find(
-        (d) => d.day === day
-      );
-      const compareDataPoint = dashboardData.comparisonDailyExpenses?.find(
-        (d) => d.day === day
-      );
+      const currentDataPoint = dashboardData.dailyExpenses.find((d) => d.day === day);
+      const compareDataPoint = dashboardData.comparisonDailyExpenses?.find((d) => d.day === day);
       return {
         day: day.toString(),
         currentMonth: currentDataPoint?.amount || 0,
@@ -356,9 +297,7 @@ const Dashboard = () => {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white">
             <h1 className="text-2xl font-bold mb-1">ExpenseManager</h1>
-            <p className="text-sm opacity-90">
-              Controle total das suas finanças
-            </p>
+            <p className="text-sm opacity-90">Controle total das suas finanças</p>
           </div>
         </div>
       </div>
@@ -373,38 +312,26 @@ const Dashboard = () => {
                 {summaryYear}
               </p>
               <Select value={summaryMonth} onValueChange={setSummaryMonth}>
-                <SelectTrigger className="w-36 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {months.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
+                  {months.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
                 </SelectContent>
               </Select>
               <Select value={summaryYear} onValueChange={setSummaryYear}>
-                <SelectTrigger className="w-24 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y} value={y}>
-                      {y}
-                    </SelectItem>
-                  ))}
+                  {years.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
                 </SelectContent>
               </Select>
               <div className="flex items-center space-x-2">
                 <Switch
-                    id="forecast-switch"
-                    checked={isForecastView}
-                    onCheckedChange={setIsForecastView}
+                  id="forecast-switch"
+                  checked={isForecastView}
+                  onCheckedChange={setIsForecastView}
                 />
                 <Label htmlFor="forecast-switch" className="flex items-center gap-1 text-sm">
-                    <CalendarClock className="h-4 w-4" />
-                    Previsão
+                  <CalendarClock className="h-4 w-4" />
+                  Previsão
                 </Label>
               </div>
             </div>
@@ -421,12 +348,8 @@ const Dashboard = () => {
           {loadingSummary ? (
             Array.from({ length: 3 }).map((_, i) => (
               <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-5 w-3/4" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-7 w-1/2" />
-                </CardContent>
+                <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
+                <CardContent><Skeleton className="h-7 w-1/2" /></CardContent>
               </Card>
             ))
           ) : (
@@ -440,10 +363,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-success">
-                    R${" "}
-                    {(summaryData?.totalIncome ?? 0).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })}
+                    R$ {(summaryData?.totalIncome ?? 0).toLocaleString("pt-BR", {minimumFractionDigits: 2})}
                   </div>
                 </CardContent>
               </Card>
@@ -456,10 +376,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-destructive">
-                    R${" "}
-                    {(summaryData?.totalExpenses ?? 0).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })}
+                    R$ {(summaryData?.totalExpenses ?? 0).toLocaleString("pt-BR", {minimumFractionDigits: 2})}
                   </div>
                 </CardContent>
               </Card>
@@ -472,10 +389,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    R${" "}
-                    {(summaryData?.balance ?? 0).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })}
+                    R$ {(summaryData?.balance ?? 0).toLocaleString("pt-BR", {minimumFractionDigits: 2})}
                   </div>
                 </CardContent>
               </Card>
@@ -496,52 +410,28 @@ const Dashboard = () => {
                     onValueChange={(v) => setActiveChart(v as "line" | "pie")}
                     disabled={isForecastView}
                   >
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="line">
-                        <div className="flex items-center">
-                          <LineChartIcon className="mr-2 h-4 w-4" />
-                          Gastos Diários
-                        </div>
+                        <div className="flex items-center"><LineChartIcon className="mr-2 h-4 w-4" />Gastos Diários</div>
                       </SelectItem>
                       <SelectItem value="pie">
-                        <div className="flex items-center">
-                          <PieChartIcon className="mr-2 h-4 w-4" />
-                          Distribuição %
-                        </div>
+                        <div className="flex items-center"><PieChartIcon className="mr-2 h-4 w-4" />Distribuição %</div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                   {activeChart === "line" && (
                     <div className="flex gap-2 items-center flex-wrap">
-                      <Select
-                        value={selectedMonth}
-                        onValueChange={setSelectedMonth}
-                        disabled={isForecastView}
-                      >
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isForecastView}>
+                        <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {months.map((m) => (
-                            <SelectItem key={m.value} value={m.value}>
-                              {m.label}
-                            </SelectItem>
-                          ))}
+                          {months.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
                       <Select value={selectedYear} onValueChange={setSelectedYear} disabled={isForecastView}>
-                        <SelectTrigger className="w-24">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {years.map((y) => (
-                            <SelectItem key={y} value={y}>
-                              {y}
-                            </SelectItem>
-                          ))}
+                          {years.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
                         </SelectContent>
                       </Select>
                       <div className="flex items-center space-x-2">
@@ -585,23 +475,14 @@ const Dashboard = () => {
                                       } else if (newSelection.size < 3) {
                                         newSelection.add(month.value);
                                       } else {
-                                        toast.warning(
-                                          "Você pode comparar no máximo 3 meses."
-                                        );
+                                        toast.warning("Você pode comparar no máximo 3 meses.");
                                       }
                                       return Array.from(newSelection);
                                     });
                                     setPiePopoverOpen(true);
                                   }}
                                 >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      pieSelectedMonths.includes(month.value)
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
+                                  <Check className={cn("mr-2 h-4 w-4", pieSelectedMonths.includes(month.value) ? "opacity-100" : "opacity-0")} />
                                   {month.label}
                                 </CommandItem>
                               ))}
@@ -616,27 +497,15 @@ const Dashboard = () => {
               {activeChart === "line" && isComparing && (
                 <div className="flex gap-2 mt-4 justify-end">
                   <Select value={compareMonth} onValueChange={setCompareMonth} disabled={isForecastView}>
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Mês" />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-36"><SelectValue placeholder="Mês" /></SelectTrigger>
                     <SelectContent>
-                      {months.map((m) => (
-                        <SelectItem key={m.value} value={m.value}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
+                      {months.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
                     </SelectContent>
                   </Select>
                   <Select value={compareYear} onValueChange={setCompareYear} disabled={isForecastView}>
-                    <SelectTrigger className="w-24">
-                      <SelectValue placeholder="Ano" />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-24"><SelectValue placeholder="Ano" /></SelectTrigger>
                     <SelectContent>
-                      {years.map((y) => (
-                        <SelectItem key={y} value={y}>
-                          {y}
-                        </SelectItem>
-                      ))}
+                      {years.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -648,37 +517,28 @@ const Dashboard = () => {
                   Análise gráfica ainda não disponível para o modo de previsão.
                 </div>
               ) : activeChart === "line" ? (
-                loading ? (
-                  <Skeleton className="h-full w-full" />
-                ) : (
+                loading ? (<Skeleton className="h-full w-full" />) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={lineChartData}>
                       <CartesianGrid />
                       <XAxis dataKey="day" />
                       <YAxis tickFormatter={(v) => `R$${v}`} />
                       <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--background))",
-                          border: "1px solid hsl(var(--border))",
-                        }}
+                        contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }}
                         formatter={(v: number) => `R$${v.toFixed(2)}`}
                       />
                       <Legend />
                       <Line
                         type="monotone"
                         dataKey="currentMonth"
-                        name={`${
-                          months.find((m) => m.value === selectedMonth)?.label
-                        } ${selectedYear}`}
+                        name={`${months.find((m) => m.value === selectedMonth)?.label} ${selectedYear}`}
                         stroke="hsl(var(--success))"
                       />
                       {isComparing && (
                         <Line
                           type="monotone"
                           dataKey="comparisonMonth"
-                          name={`${
-                            months.find((m) => m.value === compareMonth)?.label
-                          } ${compareYear}`}
+                          name={`${months.find((m) => m.value === compareMonth)?.label} ${compareYear}`}
                           stroke="hsl(var(--destructive))"
                           strokeDasharray="5 5"
                         />
@@ -686,23 +546,13 @@ const Dashboard = () => {
                     </LineChart>
                   </ResponsiveContainer>
                 )
-              ) : loadingPie ? (
-                <Skeleton className="h-full w-full" />
-              ) : (
+              ) : loadingPie ? (<Skeleton className="h-full w-full" />) : (
                 <div className="flex flex-col">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {pieChartData &&
                       Object.entries(pieChartData).map(([month, data]) => (
-                        <div
-                          key={month}
-                          className="flex flex-col items-center min-h-[300px]"
-                        >
-                          <h3 className="font-semibold mb-2">
-                            {
-                              availableMonths.find((m) => m.value === month)
-                                ?.label
-                            }
-                          </h3>
+                        <div key={month} className="flex flex-col items-center min-h-[300px]">
+                          <h3 className="font-semibold mb-2">{availableMonths.find((m) => m.value === month)?.label}</h3>
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
@@ -712,24 +562,11 @@ const Dashboard = () => {
                                 cx="50%"
                                 cy="50%"
                                 outerRadius={80}
-                                label={(entry) =>
-                                  `${(entry.percent * 100).toFixed(0)}%`
-                                }
+                                label={(entry) => `${(entry.percent * 100).toFixed(0)}%`}
                               >
-                                {(data[pieChartDataType] || []).map(
-                                  (entry, index) => (
-                                    <Cell
-                                      key={`cell-${index}`}
-                                      fill={entry.name === 'Recorrências' ? RECURRENCE_COLOR : entry.color || COLORS[index % COLORS.length]}
-                                    />
-                                  )
-                                )}
+                                {(data[pieChartDataType] || []).map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.name === 'Recorrências' ? RECURRENCE_COLOR : entry.color || COLORS[index % COLORS.length]} />))}
                               </Pie>
-                              <Tooltip
-                                formatter={(value: number) =>
-                                  `R$ ${value.toFixed(2)}`
-                                }
-                              />
+                              <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
                               <Legend />
                             </PieChart>
                           </ResponsiveContainer>
@@ -739,9 +576,7 @@ const Dashboard = () => {
                   <ToggleGroup
                     type="single"
                     value={pieChartDataType}
-                    onValueChange={(v: "expenses" | "incomes") =>
-                      v && setPieChartDataType(v)
-                    }
+                    onValueChange={(v: "expenses" | "incomes") => v && setPieChartDataType(v)}
                     className="mt-4 justify-center"
                     disabled={isForecastView}
                   >
@@ -760,36 +595,16 @@ const Dashboard = () => {
                   Top Categorias de Despesa
                 </CardTitle>
                 <div className="flex gap-2 items-center">
-                  <Select
-                    value={categoriesMonth}
-                    onValueChange={setCategoriesMonth}
-                    disabled={isForecastView}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={categoriesMonth} onValueChange={setCategoriesMonth} disabled={isForecastView}>
+                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {months.map((m) => (
-                        <SelectItem key={m.value} value={m.value}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
+                      {months.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
                     </SelectContent>
                   </Select>
-                  <Select
-                    value={categoriesYear}
-                    onValueChange={setCategoriesYear}
-                    disabled={isForecastView}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={categoriesYear} onValueChange={setCategoriesYear} disabled={isForecastView}>
+                    <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {years.map((y) => (
-                        <SelectItem key={y} value={y}>
-                          {y}
-                        </SelectItem>
-                      ))}
+                      {years.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -798,14 +613,11 @@ const Dashboard = () => {
             <CardContent className="space-y-4">
               {isForecastView ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground p-8">
-                     Top Categorias ainda não disponível para o modo de previsão.
+                    Top Categorias ainda não disponível para o modo de previsão.
                   </div>
-              ) : loadingCategories ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between"
-                    >
+                ) : loadingCategories ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between">
                       <Skeleton className="h-5 w-1/2" />
                       <Skeleton className="h-5 w-1/4" />
                     </div>
@@ -816,9 +628,7 @@ const Dashboard = () => {
                       <div className="flex items-center space-x-3 min-w-0">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor: category.name === 'Recorrências' ? RECURRENCE_COLOR : category.color || `hsl(${200 + index * 40}, 76%, ${40 + index * 10}%)`,
-                          }}
+                          style={{ backgroundColor: category.name === 'Recorrências' ? RECURRENCE_COLOR : category.color || `hsl(${200 + index * 40}, 76%, ${40 + index * 10}%)` }}
                         />
                         <span className="text-sm font-medium text-card-foreground truncate">
                           {category.name || "Sem Categoria"}
@@ -826,10 +636,7 @@ const Dashboard = () => {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-sm font-semibold text-card-foreground">
-                          R${" "}
-                          {category.total.toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                          })}
+                          R$ {category.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {category.percentage}%

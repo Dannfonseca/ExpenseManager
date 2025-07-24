@@ -50,23 +50,11 @@ import { toast } from "sonner";
 
 interface User {
   _id: string;
+  name: string;
   email: string;
   role: "user" | "admin";
   createdAt: string;
 }
-
-const fetchUsers = async (token: string) => {
-  const response = await fetch("/api/user", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("Você não tem permissão para ver esta página.");
-    }
-    throw new Error("Falha ao buscar usuários.");
-  }
-  return response.json();
-};
 
 const Users = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -76,28 +64,24 @@ const Users = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  const getToken = () => {
-    const userInfoString = localStorage.getItem("userInfo");
-    if (!userInfoString) {
-      throw new Error("Usuário não autenticado.");
-    }
-    return JSON.parse(userInfoString).token;
-  };
-
-  const loadUsers = () => {
+  const loadUsers = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      fetchUsers(token)
-        .then(setUsers)
-        .catch((err) => {
-          setError(err.message);
-          toast.error(err.message);
-        })
-        .finally(() => setLoading(false));
+      const response = await fetch("/api/user", {
+        credentials: 'include', // Usa cookie para autenticação
+      });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Você não tem permissão para ver esta página.");
+        }
+        throw new Error("Falha ao buscar usuários.");
+      }
+      const data = await response.json();
+      setUsers(data);
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -112,13 +96,10 @@ const Users = () => {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const token = getToken();
       const response = await fetch("/api/user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Usa cookie para autenticação
         body: JSON.stringify(data),
       });
 
@@ -147,13 +128,10 @@ const Users = () => {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const token = getToken();
       const response = await fetch(`/api/user/${editingUser._id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Usa cookie para autenticação
         body: JSON.stringify(data),
       });
 
@@ -172,10 +150,9 @@ const Users = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      const token = getToken();
       const response = await fetch(`/api/user/${userId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include', // Usa cookie para autenticação
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -201,9 +178,7 @@ const Users = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
-          <p className="text-muted-foreground">
-            Gerencie os usuários do sistema.
-          </p>
+          <p className="text-muted-foreground">Gerencie os usuários do sistema.</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -214,40 +189,26 @@ const Users = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Novo Usuário</DialogTitle>
-              <DialogDescription>
-                Preencha os dados para criar um novo usuário.
-              </DialogDescription>
+              <DialogDescription>Preencha os dados para criar um novo usuário.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser}>
               <div className="grid gap-4 py-4">
+                 <div className="grid grid-cols-4 items-center gap-4">
+                   <Label htmlFor="name" className="text-right">Nome</Label>
+                   <Input id="name" name="name" className="col-span-3" required />
+                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    className="col-span-3"
-                    required
-                  />
+                  <Label htmlFor="email" className="text-right">Email</Label>
+                  <Input id="email" name="email" type="email" className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    className="col-span-3"
-                    required
-                  />
+                  <Input id="password" name="password" type="password" className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="role">Role</Label>
                   <Select name="role" defaultValue="user">
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
@@ -256,11 +217,7 @@ const Users = () => {
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="secondary">
-                    Cancelar
-                  </Button>
-                </DialogClose>
+                <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
                 <Button type="submit">Criar Usuário</Button>
               </DialogFooter>
             </form>
@@ -276,11 +233,11 @@ const Users = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Desktop View: Table */}
           <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Data de Criação</TableHead>
@@ -290,50 +247,34 @@ const Users = () => {
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user._id}>
-                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={user.role === "admin" ? "default" : "secondary"}
-                      >
+                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                         {user.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {new Date(user.createdAt).toLocaleDateString("pt-BR")}
-                    </TableCell>
+                    <TableCell>{new Date(user.createdAt).toLocaleDateString("pt-BR")}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditClick(user)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(user)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                          >
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Confirmar Exclusão
-                            </AlertDialogTitle>
+                            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Tem certeza que deseja excluir o usuário{" "}
-                              {user.email}? Esta ação não pode ser desfeita.
+                              Tem certeza que deseja excluir o usuário {user.email}? Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user._id)}
-                            >
+                            <AlertDialogAction onClick={() => handleDeleteUser(user._id)}>
                               Excluir
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -346,17 +287,15 @@ const Users = () => {
             </Table>
           </div>
 
-          {/* Mobile View: Cards */}
           <div className="block md:hidden space-y-4">
             {users.map((user) => (
               <Card key={user._id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
+                    <p className="font-medium break-all">{user.name}</p>
                     <p className="font-medium break-all">{user.email}</p>
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant={user.role === "admin" ? "default" : "secondary"}
-                      >
+                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                         {user.role}
                       </Badge>
                       <p className="text-sm text-muted-foreground">
@@ -366,37 +305,25 @@ const Users = () => {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditClick(user)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                        >
+                        <Button variant="destructive" size="sm">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Confirmar Exclusão
-                          </AlertDialogTitle>
+                          <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tem certeza que deseja excluir o usuário{" "}
-                            {user.email}? Esta ação não pode ser desfeita.
+                            Tem certeza que deseja excluir o usuário {user.email}? Esta ação não pode ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteUser(user._id)}
-                          >
+                          <AlertDialogAction onClick={() => handleDeleteUser(user._id)}>
                             Excluir
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -409,8 +336,7 @@ const Users = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Edit User Dialog */}
+      
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -419,25 +345,18 @@ const Users = () => {
           {editingUser && (
             <form onSubmit={handleUpdateUser}>
               <div className="grid gap-4 py-4">
+                 <div className="grid grid-cols-4 items-center gap-4">
+                   <Label htmlFor="edit-name" className="text-right">Nome</Label>
+                   <Input id="edit-name" name="name" defaultValue={editingUser.name} className="col-span-3" required />
+                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="edit-email"
-                    name="email"
-                    type="email"
-                    defaultValue={editingUser.email}
-                    className="col-span-3"
-                    required
-                  />
+                  <Label htmlFor="edit-email" className="text-right">Email</Label>
+                  <Input id="edit-email" name="email" type="email" defaultValue={editingUser.email} className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-role">Role</Label>
                   <Select name="role" defaultValue={editingUser.role}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
@@ -446,15 +365,7 @@ const Users = () => {
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setEditingUser(null)}
-                  >
-                    Cancelar
-                  </Button>
-                </DialogClose>
+                <DialogClose asChild><Button type="button" variant="secondary" onClick={() => setEditingUser(null)}>Cancelar</Button></DialogClose>
                 <Button type="submit">Salvar Alterações</Button>
               </DialogFooter>
             </form>

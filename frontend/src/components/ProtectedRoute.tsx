@@ -1,9 +1,8 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 
+// A única função deste componente é renderizar o Layout, que fará a verificação.
 const ProtectedRoute = () => {
-  const userInfo = localStorage.getItem("userInfo");
-
-  return userInfo ? <Outlet /> : <Navigate to="/login" replace />;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

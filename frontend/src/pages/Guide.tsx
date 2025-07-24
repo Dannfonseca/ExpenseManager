@@ -1,3 +1,9 @@
+/*
+ * Página de Guia do Usuário.
+ * - Corrigido o alinhamento do botão do Instagram na seção de FAQ.
+ * - Seção de FAQ e Suporte movida para um Card separado para maior visibilidade.
+ * - Adicionada seção detalhada sobre a nova Calculadora Financeira dentro do Accordion.
+ */
 import {
   Accordion,
   AccordionContent,

@@ -46,9 +46,7 @@ interface PaymentType {
 
 const AddTransaction = () => {
   const [isRecurring, setIsRecurring] = useState(false);
-  const [transactionType, setTransactionType] = useState<"expense" | "income">(
-    "expense"
-  );
+  const [transactionType, setTransactionType] = useState<"expense" | "income">("expense");
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -66,28 +64,29 @@ const AddTransaction = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
+        const fetchRequests = [
+          fetch("/api/payment-types", { credentials: 'include' }),
+        ];
 
-        // Fetch Payment Types
-        const ptResponse = await fetch("/api/payment-types", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        if (transactionType === "expense") {
+          fetchRequests.push(fetch("/api/categories", { credentials: 'include' }));
+        }
+
+        const responses = await Promise.all(fetchRequests);
+        
+        const ptResponse = responses[0];
         if (!ptResponse.ok) throw new Error("Falha ao buscar tipos de pagamento.");
         const ptData = await ptResponse.json();
         setPaymentTypes(ptData);
 
-        // Fetch Categories only if it's an expense
         if (transactionType === "expense") {
-          const catResponse = await fetch("/api/categories", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const catResponse = responses[1];
           if (!catResponse.ok) throw new Error("Falha ao buscar categorias.");
           const catData = await catResponse.json();
           setCategories(catData);
         } else {
           setCategories([]);
+          setFormData(prev => ({ ...prev, category: "" }));
         }
       } catch (error: any) {
         toast.error(error.message);
@@ -98,13 +97,6 @@ const AddTransaction = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const userInfoString = localStorage.getItem("userInfo");
-    if (!userInfoString) {
-      toast.error("Você precisa estar logado para adicionar uma transação.");
-      return;
-    }
-    const { token } = JSON.parse(userInfoString);
 
     const apiEndpoint = isRecurring ? "/api/recurring-transactions" : "/api/transactions";
     
@@ -136,10 +128,8 @@ const AddTransaction = () => {
     try {
       const response = await fetch(apiEndpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Usa cookie para autenticação
         body: JSON.stringify(transactionData),
       });
 
@@ -156,7 +146,7 @@ const AddTransaction = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className="p-6 pt-16 sm:pt-6 space-y-6 bg-background min-h-screen">
       <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -337,53 +327,52 @@ const AddTransaction = () => {
 
             {isRecurring && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                    <Label>Frequência *</Label>
-                    <Select value={formData.frequency} onValueChange={(value) => setFormData(prev => ({...prev, frequency: value}))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Diária</SelectItem>
-                        <SelectItem value="weekly">Semanal</SelectItem>
-                        <SelectItem value="monthly">Mensal</SelectItem>
-                        <SelectItem value="yearly">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                 </div>
-                 <div className="space-y-2">
-                    <Label>Data Final (Opcional)</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? (
-                            format(endDate, "PP", { locale: ptBR })
-                          ) : (
-                            <span>Sem data final</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                          initialFocus
-                          className="p-3"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                   <div className="space-y-2">
+                      <Label>Frequência *</Label>
+                      <Select value={formData.frequency} onValueChange={(value) => setFormData(prev => ({...prev, frequency: value}))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Diária</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="yearly">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                   </div>
+                   <div className="space-y-2">
+                      <Label>Data Final (Opcional)</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !endDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? (
+                              format(endDate, "PP", { locale: ptBR })
+                            ) : (
+                              <span>Sem data final</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            initialFocus
+                            className="p-3"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                   </div>
               </div>
             )}
-
 
             <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>

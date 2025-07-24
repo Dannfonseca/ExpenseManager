@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Landmark } from "lucide-react";
+import { Landmark, Github, Chrome } from "lucide-react";
 import { toast } from "sonner";
 import heroImage from "@/assets/expense-hero.jpg";
 
@@ -11,6 +11,14 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth_failed') {
+      toast.error("Falha na autenticação com o provedor social.");
+      navigate('/login', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +28,7 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include', // Necessário para o backend definir o cookie
         body: JSON.stringify({ email, password }),
       });
 
@@ -29,12 +38,16 @@ const Login = () => {
         throw new Error(data.message || "Falha ao fazer login");
       }
 
-      localStorage.setItem("userInfo", JSON.stringify(data));
+      // NÃO salva mais no localStorage
       toast.success("Login realizado com sucesso!");
-      navigate("/");
+      navigate("/"); // Apenas navega, o Layout vai buscar os dados
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+
+  const handleSocialLogin = (provider: 'google' | 'github') => {
+    window.location.href = `/api/auth/${provider}`;
   };
 
   return (
@@ -82,6 +95,24 @@ const Login = () => {
             <Button type="submit" className="w-full">
               Login
             </Button>
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Ou continue com
+                </span>
+              </div>
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <Button variant="outline" type="button" onClick={() => handleSocialLogin('google')}>
+                    <Chrome className="mr-2 h-4 w-4" /> Google
+                </Button>
+                <Button variant="outline" type="button" onClick={() => handleSocialLogin('github')}>
+                    <Github className="mr-2 h-4 w-4" /> GitHub
+                </Button>
+            </div>
           </form>
           <div className="mt-4 text-center text-sm">
             Não tem uma conta?{" "}

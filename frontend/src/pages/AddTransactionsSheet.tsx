@@ -69,13 +69,9 @@ const AddTransactionsSheet = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
-        
         const [catRes, ptRes] = await Promise.all([
-            fetch("/api/categories", { headers: { Authorization: `Bearer ${token}` } }),
-            fetch("/api/payment-types", { headers: { Authorization: `Bearer ${token}` } }),
+            fetch("/api/categories", { credentials: 'include' }),
+            fetch("/api/payment-types", { credentials: 'include' }),
         ]);
 
         if (!catRes.ok) throw new Error("Falha ao buscar categorias.");
@@ -115,10 +111,6 @@ const AddTransactionsSheet = () => {
 
   const handleSubmit = async () => {
     try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
-
         const transactionsToSubmit = rows.map((row, index) => {
             if (!row.description || !row.amount) {
                 throw new Error(`A linha ${index + 1} está incompleta. Descrição e valor são obrigatórios.`);
@@ -138,10 +130,8 @@ const AddTransactionsSheet = () => {
 
         const response = await fetch('/api/transactions/bulk', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(transactionsToSubmit)
         });
 

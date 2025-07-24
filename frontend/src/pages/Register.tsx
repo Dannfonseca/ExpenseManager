@@ -3,11 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Landmark } from "lucide-react";
+import { Landmark, Github, Chrome } from "lucide-react";
 import { toast } from "sonner";
 import heroImage from "@/assets/expense-hero.jpg";
 
 const Register = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,7 +27,8 @@ const Register = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        credentials: 'include', // Necessário para o backend definir o cookie
+        body: JSON.stringify({ name, email, password }),
       });
 
       const data = await response.json();
@@ -35,12 +37,15 @@ const Register = () => {
         throw new Error(data.message || "Falha ao registrar");
       }
 
-      localStorage.setItem("userInfo", JSON.stringify(data));
       toast.success("Registro realizado com sucesso!");
-      navigate("/");
+      navigate("/"); // Apenas navega
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+  
+  const handleSocialLogin = (provider: 'google' | 'github') => {
+    window.location.href = `/api/auth/${provider}`;
   };
 
   return (
@@ -55,13 +60,19 @@ const Register = () => {
             <p className="text-sm text-muted-foreground">
               Comece a organizar sua vida financeira hoje mesmo.
             </p>
-            <p className="text-balance text-muted-foreground mt-2">
-              Junte-se ao ExpenseManager e obtenha controle total sobre suas
-              finanças. Registre seus gastos, acompanhe seu saldo e descubra para
-              onde seu dinheiro está indo. É fácil, rápido e eficiente!
-            </p>
           </div>
           <form onSubmit={handleRegister} className="grid gap-4">
+            <div className="grid gap-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Seu nome completo"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -96,6 +107,24 @@ const Register = () => {
             <Button type="submit" className="w-full">
               Criar Conta
             </Button>
+            <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                Ou continue com
+                </span>
+            </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <Button variant="outline" type="button" onClick={() => handleSocialLogin('google')}>
+                    <Chrome className="mr-2 h-4 w-4" /> Google
+                </Button>
+                <Button variant="outline" type="button" onClick={() => handleSocialLogin('github')}>
+                    <Github className="mr-2 h-4 w-4" /> GitHub
+                </Button>
+            </div>
           </form>
           <div className="mt-4 text-center text-sm">
             Já possui uma conta?{" "}

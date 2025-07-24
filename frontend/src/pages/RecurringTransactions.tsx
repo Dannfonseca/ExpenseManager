@@ -106,12 +106,8 @@ const RecurringTransactions = () => {
   const fetchRecurringTransactions = async () => {
     setLoading(true);
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
-
       const response = await fetch('/api/recurring-transactions', {
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: 'include',
       });
       if (!response.ok) throw new Error('Falha ao buscar transações recorrentes');
       const data = await response.json();
@@ -125,22 +121,18 @@ const RecurringTransactions = () => {
 
   const fetchInitialData = async () => {
     try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) return;
-        const { token } = JSON.parse(userInfoString);
-        
-        const [catRes, ptRes] = await Promise.all([
-          fetch("/api/categories", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("/api/payment-types", { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
+      const [catRes, ptRes] = await Promise.all([
+        fetch("/api/categories", { credentials: 'include' }),
+        fetch("/api/payment-types", { credentials: 'include' }),
+      ]);
 
-        if (catRes.ok) setAllCategories(await catRes.json());
-        if (ptRes.ok) setAllPaymentTypes(await ptRes.json());
+      if (catRes.ok) setAllCategories(await catRes.json());
+      if (ptRes.ok) setAllPaymentTypes(await ptRes.json());
     } catch (error) {
         console.error("Failed to fetch categories/payment types for edit dialog");
+        toast.error("Falha ao carregar dados de categorias e pagamentos.");
     }
   };
-
 
   useEffect(() => {
     fetchRecurringTransactions();
@@ -196,10 +188,6 @@ const RecurringTransactions = () => {
     if (!editingTransaction) return;
 
     try {
-        const userInfoString = localStorage.getItem("userInfo");
-        if (!userInfoString) throw new Error("Usuário não autenticado.");
-        const { token } = JSON.parse(userInfoString);
-
         const updatedData: any = {
             type: editFormData.type,
             description: editFormData.description,
@@ -217,10 +205,8 @@ const RecurringTransactions = () => {
 
         const response = await fetch(`/api/recurring-transactions/${editingTransaction._id}`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json" },
+            credentials: 'include',
             body: JSON.stringify(updatedData),
         });
 
@@ -239,13 +225,9 @@ const RecurringTransactions = () => {
   
   const handleDelete = async (transactionId: string) => {
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
-
       const response = await fetch(`/api/recurring-transactions/${transactionId}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
       });
 
       if (!response.ok) {
@@ -261,7 +243,7 @@ const RecurringTransactions = () => {
 
   return (
     <div className="p-6 pt-16 sm:pt-6 space-y-6 bg-background min-h-screen">
-       <div>
+      <div>
         <h1 className="text-3xl font-bold text-foreground">Transações Recorrentes</h1>
         <p className="text-muted-foreground">Gerencie suas receitas e despesas que se repetem.</p>
       </div>
@@ -277,7 +259,7 @@ const RecurringTransactions = () => {
               R$ {monthlyTotals.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
              <p className="text-xs text-muted-foreground">
-              Total de receitas recorrentes por mês.
+               Total de receitas recorrentes por mês.
             </p>
           </CardContent>
         </Card>
@@ -332,29 +314,29 @@ const RecurringTransactions = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 self-end md:self-center">
-                     <p className={`font-bold text-lg ${tx.type === 'income' ? 'text-success' : 'text-destructive'}`}>
-                       {tx.type === 'income' ? '+' : '-'} R$ {tx.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                     </p>
-                     <div>
-                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(tx)}><Edit className="h-4 w-4" /></Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Tem certeza que deseja excluir a recorrência "{tx.description}"? Esta ação não pode ser desfeita.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(tx._id)}>Excluir</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                     </div>
+                       <p className={`font-bold text-lg ${tx.type === 'income' ? 'text-success' : 'text-destructive'}`}>
+                          {tx.type === 'income' ? '+' : '-'} R$ {tx.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                       </p>
+                       <div>
+                          <Button variant="ghost" size="sm" onClick={() => handleEditClick(tx)}><Edit className="h-4 w-4" /></Button>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                           Tem certeza que deseja excluir a recorrência "{tx.description}"? Esta ação não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(tx._id)}>Excluir</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                       </div>
                   </div>
                 </Card>
               ))

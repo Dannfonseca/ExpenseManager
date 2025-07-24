@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label"; // <-- CORREÇÃO: Import adicionado
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -101,8 +101,7 @@ const Transactions = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPaymentType, setSelectedPaymentType] = useState<string>("all");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editFormData, setEditFormData] = useState({
     type: "expense" as "expense" | "income",
     description: "",
@@ -112,57 +111,36 @@ const Transactions = () => {
     notes: "",
   });
   const [editDate, setEditDate] = useState<Date | undefined>();
-
-  const [selectedMonth, setSelectedMonth] = useState(
-    (new Date().getMonth() + 1).toString()
-  );
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear().toString()
-  );
-  const [transactionTypeFilter, setTransactionTypeFilter] = useState<
-    "all" | "income" | "expense"
-  >("all");
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [monthTotals, setMonthTotals] = useState<MonthTotals>({
     income: 0,
     expenses: 0,
     balance: 0,
   });
-
   const navigate = useNavigate();
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
-
       const url = new URL("/api/transactions", window.location.origin);
       url.searchParams.append("month", selectedMonth);
       url.searchParams.append("year", selectedYear);
-
-      if (selectedCategory && selectedCategory !== "all") {
-        url.searchParams.append("category", selectedCategory);
-      }
-      if (selectedPaymentType && selectedPaymentType !== "all") {
-        url.searchParams.append("paymentType", selectedPaymentType);
-      }
-      if (searchTerm) {
-        url.searchParams.append("search", searchTerm);
-      }
-      if (transactionTypeFilter !== "all") {
-        url.searchParams.append("type", transactionTypeFilter);
-      }
+      if (selectedCategory !== "all") url.searchParams.append("category", selectedCategory);
+      if (selectedPaymentType !== "all") url.searchParams.append("paymentType", selectedPaymentType);
+      if (debouncedSearchTerm) url.searchParams.append("search", debouncedSearchTerm);
+      if (transactionTypeFilter !== "all") url.searchParams.append("type", transactionTypeFilter);
 
       const response = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Falha ao buscar transações.");
       const data = await response.json();
       setTransactions(data.transactions || []);
-      setMonthTotals(
-        data.monthTotals || { income: 0, expenses: 0, balance: 0 }
-      );
+      setMonthTotals(data.monthTotals || { income: 0, expenses: 0, balance: 0 });
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -172,13 +150,9 @@ const Transactions = () => {
   
   const fetchInitialData = async () => {
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
-      
       const [catRes, ptRes] = await Promise.all([
-        fetch("/api/categories", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/payment-types", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/categories", { credentials: 'include' }),
+        fetch("/api/payment-types", { credentials: 'include' }),
       ]);
       
       if (!catRes.ok) throw new Error("Falha ao buscar categorias.");
@@ -199,19 +173,8 @@ const Transactions = () => {
   }, []);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchTransactions();
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [
-    selectedMonth,
-    selectedYear,
-    selectedCategory,
-    selectedPaymentType,
-    searchTerm,
-    transactionTypeFilter,
-  ]);
+    fetchTransactions();
+  }, [selectedMonth, selectedYear, selectedCategory, selectedPaymentType, debouncedSearchTerm, transactionTypeFilter]);
 
   const handleEditClick = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -229,12 +192,7 @@ const Transactions = () => {
 
   const handleUpdate = async () => {
     if (!editingTransaction) return;
-
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
-
       const updatedData: any = {
         type: editFormData.type,
         description: editFormData.description,
@@ -252,10 +210,8 @@ const Transactions = () => {
         `/api/transactions/${editingTransaction._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: 'include',
           body: JSON.stringify(updatedData),
         }
       );
@@ -275,19 +231,11 @@ const Transactions = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const userInfoString = localStorage.getItem("userInfo");
-      if (!userInfoString) throw new Error("Usuário não autenticado.");
-      const { token } = JSON.parse(userInfoString);
-
       const response = await fetch(`/api/transactions/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error("Falha ao remover transação.");
-      }
-
+      if (!response.ok) throw new Error("Falha ao remover transação.");
       toast.success("Transação removida com sucesso!");
       fetchTransactions();
     } catch (error: any) {
@@ -295,14 +243,26 @@ const Transactions = () => {
     }
   };
 
+  // Hook customizado para debounce
+  function useDebounce(value: string, delay: number) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+  }
+
   return (
     <div className="p-6 pt-16 sm:pt-6 space-y-6 bg-background min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Transações</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas receitas e despesas
-          </p>
+          <p className="text-muted-foreground">Gerencie suas receitas e despesas</p>
         </div>
         <Button
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -322,27 +282,15 @@ const Transactions = () => {
             </CardTitle>
             <div className="flex gap-2 items-center">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-full sm:w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {months.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
+                  {months.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
                 </SelectContent>
               </Select>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-full sm:w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y} value={y}>
-                      {y}
-                    </SelectItem>
-                  ))}
+                  {years.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -354,10 +302,7 @@ const Transactions = () => {
             <div>
               <div className="text-sm text-muted-foreground">Receita Total</div>
               <div className="text-xl font-bold text-success">
-                R${" "}
-                {(monthTotals?.income || 0).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
+                R$ {monthTotals.income.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -366,10 +311,7 @@ const Transactions = () => {
             <div>
               <div className="text-sm text-muted-foreground">Despesa Total</div>
               <div className="text-xl font-bold text-destructive">
-                R${" "}
-                {(monthTotals?.expenses || 0).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
+                R$ {monthTotals.expenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -377,18 +319,8 @@ const Transactions = () => {
             <Scale className="h-6 w-6 text-blue-500" />
             <div>
               <div className="text-sm text-muted-foreground">Saldo Final</div>
-              <div
-                className={cn(
-                  "text-xl font-bold",
-                  (monthTotals?.balance || 0) >= 0
-                    ? "text-success"
-                    : "text-destructive"
-                )}
-              >
-                R${" "}
-                {(monthTotals?.balance || 0).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
+              <div className={cn("text-xl font-bold", monthTotals.balance >= 0 ? "text-success" : "text-destructive")}>
+                R$ {monthTotals.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -411,9 +343,7 @@ const Transactions = () => {
               <ToggleGroup
                 type="single"
                 value={transactionTypeFilter}
-                onValueChange={(value) =>
-                  value && setTransactionTypeFilter(value as any)
-                }
+                onValueChange={(value) => value && setTransactionTypeFilter(value as any)}
                 className="flex-wrap"
               >
                 <ToggleGroupItem value="all">Todos</ToggleGroupItem>
@@ -421,47 +351,25 @@ const Transactions = () => {
                 <ToggleGroupItem value="expense">Despesas</ToggleGroupItem>
               </ToggleGroup>
               <div className="flex gap-2">
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Categorias" />
-                  </SelectTrigger>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Categorias" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas as categorias</SelectItem>
-                    {allCategories.map((category) => (
-                      <SelectItem key={category._id} value={category._id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
+                    {allCategories.map((category) => (<SelectItem key={category._id} value={category._id}>{category.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
-                <Select
-                  value={selectedPaymentType}
-                  onValueChange={setSelectedPaymentType}
-                >
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Tipos de Pagamento" />
-                  </SelectTrigger>
+                <Select value={selectedPaymentType} onValueChange={setSelectedPaymentType}>
+                  <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Tipos de Pagamento" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os tipos</SelectItem>
-                    {allPaymentTypes.map((pt) => (
-                      <SelectItem key={pt._id} value={pt._id}>
-                        {pt.name}
-                      </SelectItem>
-                    ))}
+                    {allPaymentTypes.map((pt) => (<SelectItem key={pt._id} value={pt._id}>{pt.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </div>
           <div className="mt-4 text-sm text-muted-foreground">
-             <p>
-              Exibindo{" "}
-              <span className="font-bold text-foreground">{transactions.length}</span>{" "}
-              transações.
-            </p>
+             <p>Exibindo <span className="font-bold text-foreground">{transactions.length}</span> transações.</p>
           </div>
         </CardContent>
       </Card>
@@ -486,43 +394,22 @@ const Transactions = () => {
           ))
         ) : (transactions.length) > 0 ? (
           transactions.map((transaction) => (
-            <Card
-              key={transaction._id}
-              className="border-border bg-card hover:shadow-md transition-shadow"
-            >
+            <Card key={transaction._id} className="border-border bg-card hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-start space-x-4 flex-1">
-                    <div
-                      className={`p-2 rounded-lg ${
-                        transaction.type === "income"
-                          ? "bg-success/20"
-                          : "bg-destructive/20"
-                      }`}
-                    >
-                      {transaction.type === "income" ? (
-                        <ArrowUp className="h-5 w-5 text-success" />
-                      ) : (
-                        <ArrowDown className="h-5 w-5 text-destructive" />
-                      )}
+                    <div className={`p-2 rounded-lg ${transaction.type === "income" ? "bg-success/20" : "bg-destructive/20"}`}>
+                      {transaction.type === "income" ? (<ArrowUp className="h-5 w-5 text-success" />) : (<ArrowDown className="h-5 w-5 text-destructive" />)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-card-foreground truncate">
-                        {transaction.description}
-                      </h3>
+                      <h3 className="font-semibold text-card-foreground truncate">{transaction.description}</h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                         <div className="flex items-center gap-1">
                           <CalendarIcon className="h-3 w-3" />
-                          {new Date(transaction.date).toLocaleDateString(
-                            "pt-BR",
-                            { timeZone: "UTC" }
-                          )}
+                          {new Date(transaction.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                         </div>
                         {transaction.category && (
-                          <Badge style={{
-                            backgroundColor: transaction.category.color,
-                            color: getContrastColor(transaction.category.color || "#000000")
-                          }}>
+                          <Badge style={{ backgroundColor: transaction.category.color, color: getContrastColor(transaction.category.color || "#000000") }}>
                             {transaction.category.name}
                           </Badge>
                         )}
@@ -532,34 +419,12 @@ const Transactions = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div
-                      className={`text-xl font-bold ${
-                        transaction.type === "income"
-                          ? "text-success"
-                          : "text-destructive"
-                      }`}
-                    >
-                      {transaction.type === "income" ? "+" : "-"} R${" "}
-                      {transaction.amount.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                      })}
+                    <div className={`text-xl font-bold ${transaction.type === "income" ? "text-success" : "text-destructive"}`}>
+                      {transaction.type === "income" ? "+" : "-"} R$ {transaction.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditClick(transaction)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(transaction._id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(transaction)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(transaction._id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 </div>
@@ -568,9 +433,7 @@ const Transactions = () => {
           ))
         ) : (
           <Card className="text-center p-8">
-            <p className="text-muted-foreground">
-              Nenhuma transação encontrada para os filtros selecionados.
-            </p>
+            <p className="text-muted-foreground">Nenhuma transação encontrada para os filtros selecionados.</p>
           </Card>
         )}
       </div>
